@@ -1,37 +1,52 @@
 #version 330 core
 out vec4 FragColor;
-in vec3 objectColor;
-in vec3 normal;
-in vec3 fragmentPosition;
 
+in vec3 objectColor;
+in vec3 fragmentPosition;  
+in vec3 normal;  
+  
 uniform vec3 lightColor;
-uniform vec3 lightPosition;
-uniform vec3 viewerPosition;
+uniform vec3 lightPosition; 
+uniform vec3 viewerPosition; 
+
+struct Material
+{
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    float shininess;
+};
+
+struct Light
+{
+    vec3 position;
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+};
+
+uniform Material material;
+uniform Light light;
 
 void main()
 {
-    /* Normalizing vectors */
+    // ambient
+    // float ambientStrength = 0.1;
+    vec3 ambient = material.ambient * light.ambient;
+        
     vec3 _normal = normalize(normal);
-    vec3 lightDirection = normalize(lightPosition - fragmentPosition);
-    
-    /* Calculating ambient lighting */
-    float ambientStrenght = 0.1f;
-    vec3 ambientLight = ambientStrenght * lightColor;
+    vec3 lightDirection = normalize(light.position - fragmentPosition);
 
-    /* Calculating diffuse lighting*/
     float diffuseStrenght = max( dot(_normal, lightDirection), 0.0f );
-    vec3 diffuseLight = diffuseStrenght * lightColor;
+    vec3 diffuse = (diffuseStrenght * material.diffuse) * light.diffuse;
 
-    /* Calculating specular lighting */
-    float specularStrenght = 0.5;
+    // float specularStrenght = 0.5f;
     vec3 viewDirection = normalize(viewerPosition - fragmentPosition);
-    vec3 reflectionDirection = reflect(-lightDirection, _normal); // we take negative lightDirection vector,
-                                                                  // because it's pointing the other way 
-                                                                  // than we want
-    float specularValue = pow( max( dot(viewDirection, reflectionDirection), 0.0), 64 );
-    vec3 specularLight = specularStrenght * specularValue * lightColor;
+    vec3 reflectionDirection = reflect(-lightDirection, _normal);
 
-    vec3 resultColor = (ambientLight + diffuseLight + specularLight) * objectColor;
+    float spec = pow( max( dot(viewDirection, reflectionDirection), 0.0f), material.shininess);
+    vec3 specular = (material.specular * spec) * light.specular;
 
-    FragColor = vec4(resultColor, 1.0f);
-}
+    vec3 result = (ambient + diffuse + specular);
+    FragColor = vec4(result, 1.0);
+} 

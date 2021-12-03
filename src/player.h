@@ -16,7 +16,9 @@ class Player
         Shader shader;
 
         std::vector<float> vertices;
+        // std::vector<glm::vec3> vertices;
         std::vector<float> normals;
+        // std::vector<glm::vec3> normals;
         std::vector<float> data;
 
         glm::vec3 position;
@@ -34,4 +36,5 @@ class Player
 
     private:
         void loadData(const char* filename, std::vector<float> &data, float scale);
+        bool loadFromObjectFile(const char* filename);
 };

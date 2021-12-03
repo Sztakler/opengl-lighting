@@ -191,9 +191,8 @@ int main(int argc, char* argv[])
 
 
 
-
-	Player player("data/vertices_player.txt", "data/colors_player.txt", "shaders/player.vsh", "shaders/player.fsh");
-	Sphere sphere(0.2f, 36, 18);
+	Player player("data/vertices_player.txt", "data/normals_player.txt", "shaders/player.vsh", "shaders/player.fsh");
+	Sphere sphere(0.05f, 36, 18);
 
 	glm::mat4 model = glm::mat4(1.0f);
 	glm::mat4 view = glm::mat4(1.0f);
@@ -224,16 +223,16 @@ int main(int argc, char* argv[])
 		// lightPosition = sphere.position;
 
 		lightPosition.y = cos(currentFrame) + 0.5;
-		lightPosition.x = cos(currentFrame) + 0.5;
-		lightPosition.z = sin(currentFrame) + 0.3;
+		lightPosition.x = cos(currentFrame) * 2;
+		lightPosition.z = sin(currentFrame) * 2;
 
 		sphere.position = lightPosition;
 
 
 
 
-		std::cout << "Light position: (" << lightPosition.x << ", " << lightPosition.y << ", " << lightPosition.z << ")\n";
-		std::cout << "Current frame: " << currentFrame << "\n";
+		// std::cout << "Light position: (" << lightPosition.x << ", " << lightPosition.y << ", " << lightPosition.z << ")\n";
+		// std::cout << "Current frame: " << currentFrame << "\n";
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
 
@@ -242,13 +241,39 @@ int main(int argc, char* argv[])
 		projection = glm::perspective(glm::radians(player_camera.zoom), (float)(SCR_WIDTH) / (float)SCR_HEIGHT, 0.01f, 100.0f);
 		
 		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-
+		
 		
 		player.shader.Activate();
 		player.Bind();
 		glUniform3fv(3, 1, glm::value_ptr(lightColor));
-		glUniform3fv(4, 1, glm::value_ptr(sphere.position));
+		glUniform3fv(4, 1, glm::value_ptr(lightPosition));
 		glUniform3fv(5, 1, glm::value_ptr(player_camera.position));
+
+		// glm::vec3 color;
+
+		// color.x = sin(glfwGetTime() * 2.0f);
+		// color.y = sin(glfwGetTime() * 0.7f);
+		// color.z = sin(glfwGetTime() * 1.3f);
+
+		// glm::vec3 diffuseColor = lightColor   * glm::vec3(0.5f); 
+		// glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
+
+		
+
+		glUniform3f(glGetUniformLocation(player.shader.id, "material.ambient"), 1.0f, 0.5f, 0.31f);
+		glUniform3f(glGetUniformLocation(player.shader.id, "material.diffuse"), 1.0f, 0.5f, 0.31f);
+		glUniform3f(glGetUniformLocation(player.shader.id, "material.specular"), 0.5f, 0.5f, 0.5f);
+		glUniform1f(glGetUniformLocation(player.shader.id, "material.shininess"), 32.0f);
+
+		glUniform3fv(glGetUniformLocation(player.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
+		glUniform3f(glGetUniformLocation(player.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
+		glUniform3f(glGetUniformLocation(player.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
+		glUniform3f(glGetUniformLocation(player.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
+
+		// glUniform3f(glGetUniformLocation(player.shader.id, "light.position"), sphere.position.x, sphere.position.y, sphere.position.z);
+		// glUniform3f(glGetUniformLocation(player.shader.id, "light.ambient"),  0.2f, 0.2f, 0.2f);
+		// glUniform3f(glGetUniformLocation(player.shader.id, "light.diffuse"),  0.5f, 0.5f, 0.5f); // darken diffuse light a bit
+		// glUniform3f(glGetUniformLocation(player.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
 
 		player.Draw(&model, &view, &projection, drawing_mode);
 		player.Unbind();

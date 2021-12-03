@@ -4,7 +4,8 @@ Player::Player(const char* vertices_data_filename, const char* normals_data_file
                const char* vertex_shader_filename, const char* fragment_shader_filename) 
 {
 
-    loadData(vertices_data_filename, this->vertices, 1.0);
+    // loadData(vertices_data_filename, this->vertices, 1.0);
+    loadFromObjectFile("/home/krystian-jasionek/Studia/Semestr V/PGK/opengl-lighting/data/suzanne.obj");
     loadData(normals_data_filename, this->normals, 1.0);
 
     this->vertices_array = VAO();
@@ -86,4 +87,74 @@ void Player::loadData(const char* filename, std::vector<float> &data, float scal
     // }
     // std::cout << std::endl;
 
+}
+
+bool Player::loadFromObjectFile(const char* filename)
+{
+    std::ifstream f(filename);
+    if (!f.is_open())
+        return false;
+    
+    std::vector<glm::vec3> temp_vertices;
+    std::vector<glm::vec3> temp_normals;
+
+
+    while(!f.eof())
+    {
+        char line[128];
+        f.getline(line, 128);
+
+        std::stringstream s;
+        s << line;
+        
+
+        char junk;
+
+        if (line[0] == 'v')
+        {
+            if (line[1] == 'n')
+            {
+                glm::vec3 vn;
+                s >> junk >> vn.x >> vn.y >> vn.z;
+                temp_normals.push_back(vn);
+            }
+            else
+            {
+                glm::vec3 v;
+                s >> junk >> v.x >> v.y >> v.z;
+                temp_vertices.push_back(v);
+            }
+        }
+
+        if (line[0] == 'f')
+        {
+            int f[3];
+            s >> junk >> f[0] >> f[1] >> f[2];
+            for (int i = 0; i < 3; i++)
+            {
+            this->vertices.push_back(temp_vertices[f[i] - 1].x);
+            this->vertices.push_back(temp_vertices[f[i] - 1].y);
+            this->vertices.push_back(temp_vertices[f[i] - 1].z);
+            }
+        }
+
+        if (line[0] == 'n')
+        {
+            int n[3];
+            s >> junk >> n[0] >> n[1] >> n[2];
+            for (int i = 0; i < 3; i++)
+            {
+            this->normals.push_back(temp_normals[n[i] - 1].x);
+            this->normals.push_back(temp_normals[n[i] - 1].y);
+            this->normals.push_back(temp_normals[n[i] - 1].z);
+            }
+        }
+    }
+
+    for (int i = 0; i < this->vertices.size(); i += 3)
+    {
+        std::cout << "(" << this->vertices[i] << ", " << this->vertices[i + 1] << ", " << this->vertices[i + 2] << ")\n";
+    }
+
+    return true;
 }

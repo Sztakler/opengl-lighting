@@ -125,7 +125,7 @@ Sphere::Sphere(float radius, int n_sectors, int n_stacks) :
     this->indices_buffer = EBO(&this->indices, this->indices.size() * sizeof(int));
     this->indices_buffer.Bind();
     
-    this->shader = Shader("shaders/default.vsh", "shaders/default.fsh");
+    this->shader = Shader("shaders/sphere.vsh", "shaders/sphere.fsh");
 
     this->vertices_array.link_vbo(this->vertices_buffer, 0, 3);
 

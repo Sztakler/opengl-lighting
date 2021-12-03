@@ -16,7 +16,7 @@ out vec3 normal;
 void main()
 {
     gl_Position = projection * view * model * vec4(aPosition, 1.0);
-    objectColor = vec3(1.0f, 0.5f, 0.31f);
+    objectColor = vec3(0.3f, 0.3f, 0.3f);
     fragmentPosition = vec3(model * vec4(aPosition, 1.0f));
     normal = aNormal;
 }

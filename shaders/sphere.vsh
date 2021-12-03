@@ -12,5 +12,5 @@ layout (location = 3) uniform vec3 spherePosition;
 
 void main()
 {
-    gl_Position = projection * view * model * vec4(aPosition * 0.1 + spherePosition, 1.0);
+    gl_Position = projection * view * model * vec4(aPosition + spherePosition, 1.0);
 }
