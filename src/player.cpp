@@ -5,8 +5,8 @@ Player::Player(const char* vertices_data_filename, const char* normals_data_file
 {
 
     // loadData(vertices_data_filename, this->vertices, 1.0);
-    loadFromObjectFile("/home/krystian-jasionek/Studia/Semestr V/PGK/opengl-lighting/data/suzanne.obj");
-    loadData(normals_data_filename, this->normals, 1.0);
+    loadFromObjectFile("data/suzanne.obj");
+    // loadData(normals_data_filename, this->normals, 1.0);
 
     this->vertices_array = VAO();
     this->vertices_array.Bind();
@@ -80,13 +80,6 @@ void Player::loadData(const char* filename, std::vector<float> &data, float scal
             value += c;
         }
     }
-
-    // for(float value : data)
-    // {
-    //     std::cout << value << " ";
-    // }
-    // std::cout << std::endl;
-
 }
 
 bool Player::loadFromObjectFile(const char* filename)
@@ -129,32 +122,52 @@ bool Player::loadFromObjectFile(const char* filename)
         if (line[0] == 'f')
         {
             int f[3];
-            s >> junk >> f[0] >> f[1] >> f[2];
-            for (int i = 0; i < 3; i++)
-            {
-            this->vertices.push_back(temp_vertices[f[i] - 1].x);
-            this->vertices.push_back(temp_vertices[f[i] - 1].y);
-            this->vertices.push_back(temp_vertices[f[i] - 1].z);
-            }
-        }
-
-        if (line[0] == 'n')
-        {
             int n[3];
-            s >> junk >> n[0] >> n[1] >> n[2];
+
+            std::string parts[3];
+
+            s >> junk >> parts[0] >> parts[1] >> parts[2];
+            std::cout << parts[0] << " " << parts[1] << " " << parts[2] << "\n";
+            
             for (int i = 0; i < 3; i++)
             {
-            this->normals.push_back(temp_normals[n[i] - 1].x);
-            this->normals.push_back(temp_normals[n[i] - 1].y);
-            this->normals.push_back(temp_normals[n[i] - 1].z);
+                replace(parts[i], "//", " ");
+
+                char* delimiter = " ";
+                std::vector<std::string> numbers;
+
+                char* token = strtok(const_cast<char*>(parts[i].c_str()), delimiter);
+                while (token != nullptr)
+                {
+                    numbers.push_back(std::string(token));
+                    token = strtok(nullptr, delimiter);
+                }
+
+                f[i] = stoi(numbers[0]);
+                n[i] = stoi(numbers[1]);
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                this->vertices.push_back(temp_vertices[f[i] - 1].x);
+                this->vertices.push_back(temp_vertices[f[i] - 1].y);
+                this->vertices.push_back(temp_vertices[f[i] - 1].z);
+
+                this->normals.push_back(temp_normals[n[i] - 1].x);
+                this->normals.push_back(temp_normals[n[i] - 1].y);
+                this->normals.push_back(temp_normals[n[i] - 1].z);
             }
         }
     }
 
-    for (int i = 0; i < this->vertices.size(); i += 3)
-    {
-        std::cout << "(" << this->vertices[i] << ", " << this->vertices[i + 1] << ", " << this->vertices[i + 2] << ")\n";
-    }
+    return true;
+}
 
+
+bool Player::replace(std::string& str, const std::string& from, const std::string& to) {
+    size_t start_pos = str.find(from);
+    if(start_pos == std::string::npos)
+        return false;
+    str.replace(start_pos, from.length(), to);
     return true;
 }

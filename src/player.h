@@ -37,4 +37,5 @@ class Player
     private:
         void loadData(const char* filename, std::vector<float> &data, float scale);
         bool loadFromObjectFile(const char* filename);
+        bool replace(std::string& str, const std::string& from, const std::string& to);
 };
