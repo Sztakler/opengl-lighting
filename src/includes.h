@@ -33,6 +33,13 @@ typedef struct triangle
     point p3;
 } triangle;
 
+typedef struct vec3d
+{
+    float x;
+    float y;
+    float z;
+} vec3d;
+
 typedef struct AABB
 {
     float Bminx;

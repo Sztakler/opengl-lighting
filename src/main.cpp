@@ -191,14 +191,15 @@ int main(int argc, char* argv[])
 
 
 
-	Player player("data/vertices_player.txt", "data/normals_player.txt", "shaders/player.vsh", "shaders/player.fsh");
+	// Player cube("data/vertices_player.txt", "data/normals_player.txt", "shaders/player.vsh", "shaders/player.fsh");
+	Player cube("data/cube.obj", "shaders/player.vsh", "shaders/player.fsh");
+	// Player plane("data/plane.obj", "shaders/plane.vsh", "shaders/plane.fsh");
+	// Player bubble("data/sphere.obj", "shaders/player.vsh", "shaders/player.fsh");
 	Sphere sphere(0.05f, 36, 18);
 
 	glm::mat4 model = glm::mat4(1.0f);
 	glm::mat4 view = glm::mat4(1.0f);
 	glm::mat4 projection = glm::mat4(1.0f);
-
-	glm::vec3 direction;
 
 	float rotation = 0.0f;
 	double prev_time = glfwGetTime();
@@ -208,10 +209,16 @@ int main(int argc, char* argv[])
 	
 	player_camera.front = glm::vec3(0.0, 0.0, 0.0);
 
-	glm::vec3 lightColor(1.0f, 1.0f, 1.0f);	
-	glm::vec3 lightPosition(2.0, 0.5, 2.0);
+	glm::vec3 lightPosition(2.0, 0.0, 0.0);
+	glm::vec3 lightColor(1.0f, 0.0f, 0.0f);	
 
 	sphere.position = lightPosition;
+
+	// cube.position.y += 2.0f;
+	// bubble.position.x += 1.0f;
+	// bubble.position.y += 1.0f;
+	// bubble.position.z += -7.0f;
+
 
 	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0)
 	{	
@@ -222,11 +229,11 @@ int main(int argc, char* argv[])
 		processInput(window);
 		// lightPosition = sphere.position;
 
-		lightPosition.y = cos(currentFrame) + 0.5;
-		lightPosition.x = cos(currentFrame) * 2;
-		lightPosition.z = sin(currentFrame) * 2;
+		// lightPosition.y = cos(currentFrame) + 0.5;
+		// lightPosition.x = cos(currentFrame);
+		// lightPosition.z = sin(currentFrame);
 
-		sphere.position = lightPosition;
+		// sphere.position = lightPosition;
 
 
 
@@ -243,40 +250,62 @@ int main(int argc, char* argv[])
 		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 		
 		
-		player.shader.Activate();
-		player.Bind();
-		glUniform3fv(3, 1, glm::value_ptr(lightColor));
-		glUniform3fv(4, 1, glm::value_ptr(lightPosition));
-		glUniform3fv(5, 1, glm::value_ptr(player_camera.position));
+		cube.shader.Activate();
+		cube.Bind();
+		glUniform3fv(glGetUniformLocation(cube.shader.id, "lightColor"), 1, glm::value_ptr(lightColor));
+		glUniform3fv(glGetUniformLocation(cube.shader.id, "lightPosition"), 1, glm::value_ptr(lightPosition));
+		glUniform3fv(glGetUniformLocation(cube.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));
 
-		// glm::vec3 color;
+		// glUniform3f(glGetUniformLocation(cube.shader.id, "material.ambient"), 1.0f, 0.5f, 0.31f);
+		// glUniform3f(glGetUniformLocation(cube.shader.id, "material.diffuse"), 1.0f, 0.5f, 0.31f);
+		// glUniform3f(glGetUniformLocation(cube.shader.id, "material.specular"), 0.5f, 0.5f, 0.5f);
+		// glUniform1f(glGetUniformLocation(cube.shader.id, "material.shininess"), 32.0f);
 
-		// color.x = sin(glfwGetTime() * 2.0f);
-		// color.y = sin(glfwGetTime() * 0.7f);
-		// color.z = sin(glfwGetTime() * 1.3f);
+		// glUniform3fv(glGetUniformLocation(cube.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
+		// glUniform3f(glGetUniformLocation(cube.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
+		// glUniform3f(glGetUniformLocation(cube.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
+		// glUniform3f(glGetUniformLocation(cube.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
 
-		// glm::vec3 diffuseColor = lightColor   * glm::vec3(0.5f); 
-		// glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
+		cube.Draw(&model, &view, &projection, drawing_mode);
+		cube.Unbind();
 
-		
+		// plane.shader.Activate();
+		// plane.Bind();
+		// glUniform3fv(glGetUniformLocation(plane.shader.id, "lightColor"), 1, glm::value_ptr(lightColor));
+		// glUniform3fv(glGetUniformLocation(plane.shader.id, "lightPosition"), 1, glm::value_ptr(lightPosition));
+		// glUniform3fv(glGetUniformLocation(plane.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));	
 
-		glUniform3f(glGetUniformLocation(player.shader.id, "material.ambient"), 1.0f, 0.5f, 0.31f);
-		glUniform3f(glGetUniformLocation(player.shader.id, "material.diffuse"), 1.0f, 0.5f, 0.31f);
-		glUniform3f(glGetUniformLocation(player.shader.id, "material.specular"), 0.5f, 0.5f, 0.5f);
-		glUniform1f(glGetUniformLocation(player.shader.id, "material.shininess"), 32.0f);
+		// glUniform3f(glGetUniformLocation(plane.shader.id, "material.ambient"), 0.24725, 0.1995, 0.0745);
+		// glUniform3f(glGetUniformLocation(plane.shader.id, "material.diffuse"), 0.75164, 0.60648, 0.22648);
+		// glUniform3f(glGetUniformLocation(plane.shader.id, "material.specular"), 0.628281, 0.555802, 0.366065);
+		// glUniform1f(glGetUniformLocation(plane.shader.id, "material.shininess"), 50.0f);
 
-		glUniform3fv(glGetUniformLocation(player.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
-		glUniform3f(glGetUniformLocation(player.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
-		glUniform3f(glGetUniformLocation(player.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
-		glUniform3f(glGetUniformLocation(player.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
+		// glUniform3fv(glGetUniformLocation(plane.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
+		// glUniform3f(glGetUniformLocation(plane.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
+		// glUniform3f(glGetUniformLocation(plane.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
+		// glUniform3f(glGetUniformLocation(plane.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
 
-		// glUniform3f(glGetUniformLocation(player.shader.id, "light.position"), sphere.position.x, sphere.position.y, sphere.position.z);
-		// glUniform3f(glGetUniformLocation(player.shader.id, "light.ambient"),  0.2f, 0.2f, 0.2f);
-		// glUniform3f(glGetUniformLocation(player.shader.id, "light.diffuse"),  0.5f, 0.5f, 0.5f); // darken diffuse light a bit
-		// glUniform3f(glGetUniformLocation(player.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
+		// plane.Draw(&model, &view, &projection, drawing_mode);
+		// plane.Unbind();
 
-		player.Draw(&model, &view, &projection, drawing_mode);
-		player.Unbind();
+		// bubble.shader.Activate();
+		// bubble.Bind();
+		// glUniform3fv(glGetUniformLocation(bubble.shader.id, "lightColor"), 1, glm::value_ptr(lightColor));
+		// glUniform3fv(glGetUniformLocation(bubble.shader.id, "lightPosition"), 1, glm::value_ptr(lightPosition));
+		// glUniform3fv(glGetUniformLocation(bubble.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));
+
+		// glUniform3f(glGetUniformLocation(bubble.shader.id, "material.ambient"), 1.0f, 0.5f, 0.31f);
+		// glUniform3f(glGetUniformLocation(bubble.shader.id, "material.diffuse"), 1.0f, 0.5f, 0.31f);
+		// glUniform3f(glGetUniformLocation(bubble.shader.id, "material.specular"), 0.5f, 0.5f, 0.5f);
+		// glUniform1f(glGetUniformLocation(bubble.shader.id, "material.shininess"), 32.0f);
+
+		// glUniform3fv(glGetUniformLocation(bubble.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
+		// glUniform3f(glGetUniformLocation(bubble.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
+		// glUniform3f(glGetUniformLocation(bubble.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
+		// glUniform3f(glGetUniformLocation(bubble.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
+
+		// bubble.Draw(&model, &view, &projection, drawing_mode);
+		// bubble.Unbind();
 
 		sphere.shader.Activate();
 		sphere.Bind();

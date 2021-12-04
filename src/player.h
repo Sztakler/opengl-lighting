@@ -27,7 +27,8 @@ class Player
     public:
         Player(const char* vertices_data_filename, const char* normals_data_filename, 
                const char* vertex_shader_filename, const char* fragment_shader_filename);
-
+        Player(const char* obj_data_filename, const char* vertex_shader_filename,
+               const char* fragment_shader_filename);
     public:
         void Bind();
         void Unbind();

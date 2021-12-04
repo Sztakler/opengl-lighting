@@ -4,9 +4,30 @@ Player::Player(const char* vertices_data_filename, const char* normals_data_file
                const char* vertex_shader_filename, const char* fragment_shader_filename) 
 {
 
-    // loadData(vertices_data_filename, this->vertices, 1.0);
-    loadFromObjectFile("data/suzanne.obj");
-    // loadData(normals_data_filename, this->normals, 1.0);
+    loadData(vertices_data_filename, this->vertices, 1.0);
+    // loadFromObjectFile("data/plane.obj");
+    loadData(normals_data_filename, this->normals, 1.0);
+
+    this->vertices_array = VAO();
+    this->vertices_array.Bind();
+    this->vertices_buffer = VBO(&this->vertices, this->vertices.size() * sizeof(float));
+
+    this->normals_array = VAO();
+    this->normals_array.Bind();
+    this->normals_buffer = VBO(&this->normals, this->normals.size() * sizeof(float));
+
+    this->shader = Shader(vertex_shader_filename, fragment_shader_filename);
+    
+    this->vertices_array.link_vbo(this->vertices_buffer, 0, 3);
+    this->normals_array.link_vbo(this->normals_buffer, 1, 3);
+
+}
+
+Player::Player(const char* obj_data_filename, const char* vertex_shader_filename,
+               const char* fragment_shader_filename) 
+{
+
+    loadFromObjectFile(obj_data_filename);
 
     this->vertices_array = VAO();
     this->vertices_array.Bind();
@@ -88,9 +109,10 @@ bool Player::loadFromObjectFile(const char* filename)
     if (!f.is_open())
         return false;
     
-    std::vector<glm::vec3> temp_vertices;
-    std::vector<glm::vec3> temp_normals;
-
+    std::vector<vec3d> temp_vertices;
+    std::vector<vec3d> temp_normals;
+    vec3d vn = {0.0, 0.0, 0.0};
+    vec3d v = {0.0, 0.0, 0.0};
 
     while(!f.eof())
     {
@@ -107,14 +129,38 @@ bool Player::loadFromObjectFile(const char* filename)
         {
             if (line[1] == 'n')
             {
-                glm::vec3 vn;
-                s >> junk >> vn.x >> vn.y >> vn.z;
+                char* delimiter = " ";
+                std::vector<std::string> tokens;
+
+                char* token = strtok(line, delimiter);
+                while (token)
+                {
+                    tokens.push_back(std::string(token));
+                    token = strtok(nullptr, delimiter);
+                }
+
+                vn.x = stof(tokens[1]);
+                vn.y = stof(tokens[2]);
+                vn.z = stof(tokens[3]);
+
                 temp_normals.push_back(vn);
             }
             else
             {
-                glm::vec3 v;
-                s >> junk >> v.x >> v.y >> v.z;
+                char* delimiter = " ";
+                std::vector<std::string> tokens;
+
+                char* token = strtok(line, delimiter);
+                while (token)
+                {
+                    tokens.push_back(std::string(token));
+                    token = strtok(nullptr, delimiter);
+                }
+
+                v.x = stof(tokens[1]);
+                v.y = stof(tokens[2]);
+                v.z = stof(tokens[3]);
+
                 temp_vertices.push_back(v);
             }
         }
@@ -127,7 +173,6 @@ bool Player::loadFromObjectFile(const char* filename)
             std::string parts[3];
 
             s >> junk >> parts[0] >> parts[1] >> parts[2];
-            std::cout << parts[0] << " " << parts[1] << " " << parts[2] << "\n";
             
             for (int i = 0; i < 3; i++)
             {
@@ -145,6 +190,9 @@ bool Player::loadFromObjectFile(const char* filename)
 
                 f[i] = stoi(numbers[0]);
                 n[i] = stoi(numbers[1]);
+
+                // std::cout << "v " << temp_vertices[f[i] - 1].x << " " << temp_vertices[f[i] - 1].y << " " << temp_vertices[f[i] - 1].z << "\n";
+                // std::cout << "n " << temp_normals[n[i] - 1].x << " " << temp_normals[n[i] - 1].y << " " << temp_normals[n[i] - 1].z << "\n";
             }
 
             for (int i = 0; i < 3; i++)
@@ -156,7 +204,11 @@ bool Player::loadFromObjectFile(const char* filename)
                 this->normals.push_back(temp_normals[n[i] - 1].x);
                 this->normals.push_back(temp_normals[n[i] - 1].y);
                 this->normals.push_back(temp_normals[n[i] - 1].z);
+
+                // std::cout << "v " << temp_vertices[f[i] - 1].x << " " << temp_vertices[f[i] - 1].y << " " << temp_vertices[f[i] - 1].z << "\n";
+                // std::cout << "n " << temp_normals[n[i] - 1].x << " " << temp_normals[n[i] - 1].y << " " << temp_normals[n[i] - 1].z << "\n";
             }
+
         }
     }
 
