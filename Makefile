@@ -5,13 +5,12 @@ LINKER_FLAGS = -lGLEW  -lGL -lglfw
 OBJ_DIR = obj
 SRC_DIR = src
 OBJ = $(OBJ_DIR)/main.o \
-	$(OBJ_DIR)/player.o \
+	$(OBJ_DIR)/drawable.o \
 	$(OBJ_DIR)/shader.o \
 	$(OBJ_DIR)/vao.o \
 	$(OBJ_DIR)/vbo.o \
 	$(OBJ_DIR)/ebo.o \
 	$(OBJ_DIR)/camera.o \
-	$(OBJ_DIR)/drawable.o \
 	$(OBJ_DIR)/sphere.o \
 	$(OBJ_DIR)/enemies.o \
 	$(OBJ_DIR)/box.o \

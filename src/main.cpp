@@ -7,7 +7,7 @@
 #include "vao.h"
 #include "vbo.h"
 #include "ebo.h"
-#include "player.h"
+#include "drawable.h"
 #include "camera.h"
 #include "sphere.h"
 #include "enemies.h"
@@ -196,11 +196,11 @@ int main(int argc, char* argv[])
 
 
 	// Player cube("data/vertices_player.txt", "data/normals_player.txt", "shaders/player.vsh", "shaders/player.fsh");
-	Player cube("data/cube.obj", "shaders/player.vsh", "shaders/player.fsh");
-	Player plane("data/plane.obj", "shaders/plane.vsh", "shaders/plane.fsh");
-	Player bubble("data/sphere.obj", "shaders/player.vsh", "shaders/player.fsh");
-	Player suzanne("data/suzanne.obj", "shaders/player.vsh", "shaders/player.fsh");
-	Player wibblywoobly("data/wibbly-woobly.obj", "shaders/player.vsh", "shaders/player.fsh");
+	Drawable cube("data/cube.obj", "shaders/player.vsh", "shaders/player.fsh");
+	Drawable plane("data/plane.obj", "shaders/plane.vsh", "shaders/plane.fsh");
+	Drawable bubble("data/sphere.obj", "shaders/player.vsh", "shaders/player.fsh");
+	Drawable suzanne("data/suzanne.obj", "shaders/player.vsh", "shaders/player.fsh");
+	Drawable wibblywoobly("data/wibbly-woobly.obj", "shaders/player.vsh", "shaders/player.fsh");
 	
 	Sphere sphere(0.05f, 36, 18);
 
