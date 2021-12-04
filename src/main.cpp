@@ -195,9 +195,9 @@ int main(int argc, char* argv[])
 
 
 
-	// Player cube("data/vertices_player.txt", "data/normals_player.txt", "shaders/player.vsh", "shaders/player.fsh");
 	Drawable cube("data/cube.obj", "shaders/player.vsh", "shaders/player.fsh");
-	Drawable aquarium("data/aquarium_flat.obj", "shaders/player.vsh", "shaders/player.fsh");
+	Drawable aquarium("data/aquarium_smooth.obj", "shaders/aquarium.vsh", "shaders/aquarium.fsh");
+	// return 0;
 	Drawable bubble("data/sphere.obj", "shaders/player.vsh", "shaders/player.fsh");
 	Drawable suzanne("data/suzanne.obj", "shaders/player.vsh", "shaders/player.fsh");
 	Drawable wibblywoobly("data/wibbly-woobly.obj", "shaders/player.vsh", "shaders/player.fsh");
@@ -216,8 +216,8 @@ int main(int argc, char* argv[])
 	
 	player_camera.front = glm::vec3(0.0, 0.0, 0.0);
 
-	glm::vec3 lightPosition(2.0, 4.0, 2.0);
-	glm::vec3 lightColor(1.0f, 0.0f, 0.0f);	
+	glm::vec3 lightPosition(0.0, 0.0, 0.0);
+	glm::vec3 lightColor(1.0f, 1.0f, 1.0f);	
 
 	sphere.position = lightPosition;
 
@@ -237,7 +237,9 @@ int main(int argc, char* argv[])
 	wibblywoobly.position.y += 3.0;
 	wibblywoobly.position.z += 2.0;
 
-
+	float light_constant = 0.5;
+	float light_linear = 0.0009;
+	float light_quadratic = 0.008;
 
 	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0)
 	{	
@@ -248,9 +250,9 @@ int main(int argc, char* argv[])
 		processInput(window);
 		// lightPosition = sphere.position;
 
-		lightPosition.y = cos(currentFrame) * 4.0;
-		lightPosition.x = cos(currentFrame) * 3.0;
-		lightPosition.z = sin(currentFrame) * 2.0;
+		// lightPosition.y = cos(currentFrame) * 0.0;
+		lightPosition.x = cos(currentFrame) - 5.0;
+		lightPosition.z = sin(currentFrame) * 18.0;
 
 		sphere.position = lightPosition;
 
@@ -280,6 +282,9 @@ int main(int argc, char* argv[])
 		glUniform3f(glGetUniformLocation(cube.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
 		glUniform3f(glGetUniformLocation(cube.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
 		glUniform3f(glGetUniformLocation(cube.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
+		glUniform1f(glGetUniformLocation(cube.shader.id, "light.constant"), light_constant);
+		glUniform1f(glGetUniformLocation(cube.shader.id, "light.linear"), light_linear);
+		glUniform1f(glGetUniformLocation(cube.shader.id, "light.quadratic"), light_quadratic);
 
 		cube.Draw(&model, &view, &projection, drawing_mode);
 		cube.Unbind();
@@ -291,15 +296,18 @@ int main(int argc, char* argv[])
 		glUniform3fv(glGetUniformLocation(aquarium.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));	
 		glUniform3fv(glGetUniformLocation(aquarium.shader.id, "centerPosition"), 1, glm::value_ptr(aquarium.position));
 
-		glUniform3f(glGetUniformLocation(aquarium.shader.id, "material.ambient"), 0.2f, 0.2f, 0.2f);
+		glUniform3f(glGetUniformLocation(aquarium.shader.id, "material.ambient"), 0.441f / 4, 0.668f / 4, 1.000f / 4);
 		glUniform3f(glGetUniformLocation(aquarium.shader.id, "material.diffuse"), 0.441f, 0.668f, 1.000f);
-		glUniform3f(glGetUniformLocation(aquarium.shader.id, "material.specular"), 1.000f, 1.000f, 1.000f);
+		glUniform3f(glGetUniformLocation(aquarium.shader.id, "material.specular"), 0.441f, 0.668f, 1.000f);
 		glUniform1f(glGetUniformLocation(aquarium.shader.id, "material.shininess"), 36.0f);
 
 		glUniform3fv(glGetUniformLocation(aquarium.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
-		glUniform3f(glGetUniformLocation(aquarium.shader.id, "light.ambient"), 0.5f, 0.5f, 0.5f);
-		glUniform3f(glGetUniformLocation(aquarium.shader.id, "light.diffuse"), 0.7f, 0.7f, 0.7f);
+		glUniform3f(glGetUniformLocation(aquarium.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
+		glUniform3f(glGetUniformLocation(aquarium.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
 		glUniform3f(glGetUniformLocation(aquarium.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
+		glUniform1f(glGetUniformLocation(aquarium.shader.id, "light.constant"), light_constant);
+		glUniform1f(glGetUniformLocation(aquarium.shader.id, "light.linear"), light_linear);
+		glUniform1f(glGetUniformLocation(aquarium.shader.id, "light.quadratic"), light_quadratic);
 
 		aquarium.Draw(&model, &view, &projection, drawing_mode);
 		aquarium.Unbind();
@@ -319,6 +327,9 @@ int main(int argc, char* argv[])
 		glUniform3f(glGetUniformLocation(bubble.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
 		glUniform3f(glGetUniformLocation(bubble.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
 		glUniform3f(glGetUniformLocation(bubble.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
+		glUniform1f(glGetUniformLocation(bubble.shader.id, "light.constant"), light_constant);
+		glUniform1f(glGetUniformLocation(bubble.shader.id, "light.linear"), light_linear);
+		glUniform1f(glGetUniformLocation(bubble.shader.id, "light.quadratic"), light_quadratic);
 
 		bubble.Draw(&model, &view, &projection, drawing_mode);
 		bubble.Unbind();
@@ -338,6 +349,9 @@ int main(int argc, char* argv[])
 		glUniform3f(glGetUniformLocation(suzanne.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
 		glUniform3f(glGetUniformLocation(suzanne.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
 		glUniform3f(glGetUniformLocation(suzanne.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
+		glUniform1f(glGetUniformLocation(suzanne.shader.id, "light.constant"), light_constant);
+		glUniform1f(glGetUniformLocation(suzanne.shader.id, "light.linear"), light_linear);
+		glUniform1f(glGetUniformLocation(suzanne.shader.id, "light.quadratic"), light_quadratic);
 
 		suzanne.Draw(&model, &view, &projection, drawing_mode);
 		suzanne.Unbind();
@@ -357,6 +371,9 @@ int main(int argc, char* argv[])
 		glUniform3f(glGetUniformLocation(wibblywoobly.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
 		glUniform3f(glGetUniformLocation(wibblywoobly.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
 		glUniform3f(glGetUniformLocation(wibblywoobly.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
+		glUniform1f(glGetUniformLocation(wibblywoobly.shader.id, "light.constant"), light_constant);
+		glUniform1f(glGetUniformLocation(wibblywoobly.shader.id, "light.linear"), light_linear);
+		glUniform1f(glGetUniformLocation(wibblywoobly.shader.id, "light.quadratic"), light_quadratic);
 
 		wibblywoobly.Draw(&model, &view, &projection, drawing_mode);
 		wibblywoobly.Unbind();

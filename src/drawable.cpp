@@ -210,10 +210,20 @@ bool Drawable::loadFromObjectFile(const char* filename)
                 // std::cout << "v " << temp_vertices[f[i] - 1].x << " " << temp_vertices[f[i] - 1].y << " " << temp_vertices[f[i] - 1].z << "\n";
                 // std::cout << "n " << temp_normals[n[i] - 1].x << " " << temp_normals[n[i] - 1].y << " " << temp_normals[n[i] - 1].z << "\n";
             }
-
         }
     }
 
+std::cout << "vertices\n";
+        for (int i = 0; i < this->vertices.size(); i += 3)
+        {
+            std::cout << this->vertices[i] << " " << this->vertices[i + 1] << " " << this->vertices[i + 2] << "\n"; 
+        }
+
+        std::cout << "normals\n";
+        for (int i = 0; i < this->normals.size(); i += 3)
+        {
+            std::cout << this->normals[i] << " " << this->normals[i + 1] << " " << this->normals[i + 2] << "\n"; 
+        }
     return true;
 }
 

@@ -44,11 +44,11 @@ void main()
     
     vec3 ambient = material.ambient * light.ambient; 
 
-    float diff = max(dot(norm, lightDirection), 0.0);
+    float diff = max(dot(norm, -lightDirection), 0.0);
     vec3 diffuse = (diff * material.diffuse) * light.diffuse;
 
     vec3 viewDirection = normalize(viewerPosition - fragmentPosition);
-    vec3 reflectionDirection = reflect(-lightDirection, norm);
+    vec3 reflectionDirection = reflect(lightDirection, norm);
     float spec = pow(max(dot(viewDirection, reflectionDirection), 0.0), material.shininess);
     vec3 specular = (material.specular * spec) * light.specular;
 
