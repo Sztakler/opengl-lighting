@@ -11,12 +11,12 @@ layout (location = 2) uniform mat4 projection;
 
 out vec3 objectColor;
 out vec3 fragmentPosition;
-out vec3 normal;
+out vec3 Normal;
 
 void main()
 {
     gl_Position = projection * view * model * vec4(aPosition, 1.0);
     objectColor = vec3(0.3f, 0.3f, 0.3f);
     fragmentPosition = vec3(model * vec4(aPosition, 1.0f));
-    normal = aNormal;
+    Normal = mat3(transpose(inverse(model))) * aNormal;
 }

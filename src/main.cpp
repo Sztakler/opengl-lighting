@@ -98,6 +98,10 @@ void processInput(GLFWwindow *window)
 		player_camera.processKeyboard(LEFT, delta_time);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		player_camera.processKeyboard(RIGHT, delta_time);
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		player_camera.processKeyboard(UP, delta_time);
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+		player_camera.processKeyboard(DOWN, delta_time);
 
 
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
@@ -193,8 +197,11 @@ int main(int argc, char* argv[])
 
 	// Player cube("data/vertices_player.txt", "data/normals_player.txt", "shaders/player.vsh", "shaders/player.fsh");
 	Player cube("data/cube.obj", "shaders/player.vsh", "shaders/player.fsh");
-	// Player plane("data/plane.obj", "shaders/plane.vsh", "shaders/plane.fsh");
-	// Player bubble("data/sphere.obj", "shaders/player.vsh", "shaders/player.fsh");
+	Player plane("data/plane.obj", "shaders/plane.vsh", "shaders/plane.fsh");
+	Player bubble("data/sphere.obj", "shaders/player.vsh", "shaders/player.fsh");
+	Player suzanne("data/suzanne.obj", "shaders/player.vsh", "shaders/player.fsh");
+	Player wibblywoobly("data/wibbly-woobly.obj", "shaders/player.vsh", "shaders/player.fsh");
+	
 	Sphere sphere(0.05f, 36, 18);
 
 	glm::mat4 model = glm::mat4(1.0f);
@@ -209,15 +216,27 @@ int main(int argc, char* argv[])
 	
 	player_camera.front = glm::vec3(0.0, 0.0, 0.0);
 
-	glm::vec3 lightPosition(2.0, 0.0, 0.0);
+	glm::vec3 lightPosition(2.0, 4.0, 2.0);
 	glm::vec3 lightColor(1.0f, 0.0f, 0.0f);	
 
 	sphere.position = lightPosition;
 
-	// cube.position.y += 2.0f;
-	// bubble.position.x += 1.0f;
-	// bubble.position.y += 1.0f;
-	// bubble.position.z += -7.0f;
+	cube.position.x += 3.0f;
+	cube.position.y += 2.0f;
+	cube.position.z += 4.0f;
+
+	bubble.position.x += 1.0f;
+	bubble.position.y += 1.0f;
+	bubble.position.z += 4.0f;
+
+	suzanne.position.x += -2.0f;
+	suzanne.position.y += 1.5f;
+	suzanne.position.z += 3.0f;
+
+	wibblywoobly.position.x += 0.0;
+	wibblywoobly.position.y += 3.0;
+	wibblywoobly.position.z += 2.0;
+
 
 
 	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0)
@@ -229,19 +248,15 @@ int main(int argc, char* argv[])
 		processInput(window);
 		// lightPosition = sphere.position;
 
-		// lightPosition.y = cos(currentFrame) + 0.5;
-		// lightPosition.x = cos(currentFrame);
-		// lightPosition.z = sin(currentFrame);
+		lightPosition.y = cos(currentFrame) * 4.0;
+		lightPosition.x = cos(currentFrame) * 3.0;
+		lightPosition.z = sin(currentFrame) * 2.0;
 
-		// sphere.position = lightPosition;
-
-
+		sphere.position = lightPosition;
 
 
-		// std::cout << "Light position: (" << lightPosition.x << ", " << lightPosition.y << ", " << lightPosition.z << ")\n";
-		// std::cout << "Current frame: " << currentFrame << "\n";
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
+		glClearColor(0.07f, 0.07f, 0.07f, 1.0f);
 
 
 		view = player_camera.getViewMatrix();
@@ -252,19 +267,19 @@ int main(int argc, char* argv[])
 		
 		cube.shader.Activate();
 		cube.Bind();
-		glUniform3fv(glGetUniformLocation(cube.shader.id, "lightColor"), 1, glm::value_ptr(lightColor));
-		glUniform3fv(glGetUniformLocation(cube.shader.id, "lightPosition"), 1, glm::value_ptr(lightPosition));
+
 		glUniform3fv(glGetUniformLocation(cube.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));
+		glUniform3fv(glGetUniformLocation(cube.shader.id, "centerPosition"), 1, glm::value_ptr(cube.position));
 
-		// glUniform3f(glGetUniformLocation(cube.shader.id, "material.ambient"), 1.0f, 0.5f, 0.31f);
-		// glUniform3f(glGetUniformLocation(cube.shader.id, "material.diffuse"), 1.0f, 0.5f, 0.31f);
-		// glUniform3f(glGetUniformLocation(cube.shader.id, "material.specular"), 0.5f, 0.5f, 0.5f);
-		// glUniform1f(glGetUniformLocation(cube.shader.id, "material.shininess"), 32.0f);
+		glUniform3f(glGetUniformLocation(cube.shader.id, "material.ambient"), 0.2f, 0.2f, 0.2f);
+		glUniform3f(glGetUniformLocation(cube.shader.id, "material.diffuse"), 0.362f, 0.686f, 0.368f);
+		glUniform3f(glGetUniformLocation(cube.shader.id, "material.specular"), 0.5f, 0.5f, 0.5f);
+		glUniform1f(glGetUniformLocation(cube.shader.id, "material.shininess"), 32.0f);
 
-		// glUniform3fv(glGetUniformLocation(cube.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
-		// glUniform3f(glGetUniformLocation(cube.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
-		// glUniform3f(glGetUniformLocation(cube.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
-		// glUniform3f(glGetUniformLocation(cube.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
+		glUniform3fv(glGetUniformLocation(cube.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
+		glUniform3f(glGetUniformLocation(cube.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
+		glUniform3f(glGetUniformLocation(cube.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
+		glUniform3f(glGetUniformLocation(cube.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
 
 		cube.Draw(&model, &view, &projection, drawing_mode);
 		cube.Unbind();
@@ -274,38 +289,78 @@ int main(int argc, char* argv[])
 		// glUniform3fv(glGetUniformLocation(plane.shader.id, "lightColor"), 1, glm::value_ptr(lightColor));
 		// glUniform3fv(glGetUniformLocation(plane.shader.id, "lightPosition"), 1, glm::value_ptr(lightPosition));
 		// glUniform3fv(glGetUniformLocation(plane.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));	
+		// glUniform3fv(glGetUniformLocation(plane.shader.id, "centerPosition"), 1, glm::value_ptr(plane.position));
 
 		// glUniform3f(glGetUniformLocation(plane.shader.id, "material.ambient"), 0.24725, 0.1995, 0.0745);
-		// glUniform3f(glGetUniformLocation(plane.shader.id, "material.diffuse"), 0.75164, 0.60648, 0.22648);
+		// glUniform3f(glGetUniformLocation(plane.shader.id, "material.diffuse"), 0.362f, 0.686f, 0.368f);
 		// glUniform3f(glGetUniformLocation(plane.shader.id, "material.specular"), 0.628281, 0.555802, 0.366065);
 		// glUniform1f(glGetUniformLocation(plane.shader.id, "material.shininess"), 50.0f);
 
 		// glUniform3fv(glGetUniformLocation(plane.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
 		// glUniform3f(glGetUniformLocation(plane.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
 		// glUniform3f(glGetUniformLocation(plane.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
-		// glUniform3f(glGetUniformLocation(plane.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
+		// // glUniform3f(glGetUniformLocation(plane.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
 
 		// plane.Draw(&model, &view, &projection, drawing_mode);
 		// plane.Unbind();
 
-		// bubble.shader.Activate();
-		// bubble.Bind();
-		// glUniform3fv(glGetUniformLocation(bubble.shader.id, "lightColor"), 1, glm::value_ptr(lightColor));
-		// glUniform3fv(glGetUniformLocation(bubble.shader.id, "lightPosition"), 1, glm::value_ptr(lightPosition));
-		// glUniform3fv(glGetUniformLocation(bubble.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));
+		bubble.shader.Activate();
+		bubble.Bind();
+		
+		glUniform3fv(glGetUniformLocation(bubble.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));
+		glUniform3fv(glGetUniformLocation(bubble.shader.id, "centerPosition"), 1, glm::value_ptr(bubble.position));
 
-		// glUniform3f(glGetUniformLocation(bubble.shader.id, "material.ambient"), 1.0f, 0.5f, 0.31f);
-		// glUniform3f(glGetUniformLocation(bubble.shader.id, "material.diffuse"), 1.0f, 0.5f, 0.31f);
-		// glUniform3f(glGetUniformLocation(bubble.shader.id, "material.specular"), 0.5f, 0.5f, 0.5f);
-		// glUniform1f(glGetUniformLocation(bubble.shader.id, "material.shininess"), 32.0f);
+		glUniform3f(glGetUniformLocation(bubble.shader.id, "material.ambient"), 0.2f, 0.2f, 0.2f);
+		glUniform3f(glGetUniformLocation(bubble.shader.id, "material.diffuse"), 0.362f, 0.686f, 0.368f);
+		glUniform3f(glGetUniformLocation(bubble.shader.id, "material.specular"), 0.5f, 0.5f, 0.5f);
+		glUniform1f(glGetUniformLocation(bubble.shader.id, "material.shininess"), 32.0f);
 
-		// glUniform3fv(glGetUniformLocation(bubble.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
-		// glUniform3f(glGetUniformLocation(bubble.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
-		// glUniform3f(glGetUniformLocation(bubble.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
-		// glUniform3f(glGetUniformLocation(bubble.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
+		glUniform3fv(glGetUniformLocation(bubble.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
+		glUniform3f(glGetUniformLocation(bubble.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
+		glUniform3f(glGetUniformLocation(bubble.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
+		glUniform3f(glGetUniformLocation(bubble.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
 
-		// bubble.Draw(&model, &view, &projection, drawing_mode);
-		// bubble.Unbind();
+		bubble.Draw(&model, &view, &projection, drawing_mode);
+		bubble.Unbind();
+
+		suzanne.shader.Activate();
+		suzanne.Bind();
+		
+		glUniform3fv(glGetUniformLocation(suzanne.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));
+		glUniform3fv(glGetUniformLocation(suzanne.shader.id, "centerPosition"), 1, glm::value_ptr(suzanne.position));
+
+		glUniform3f(glGetUniformLocation(suzanne.shader.id, "material.ambient"), 0.2f, 0.2f, 0.2f);
+		glUniform3f(glGetUniformLocation(suzanne.shader.id, "material.diffuse"), 0.362f, 0.686f, 0.368f);
+		glUniform3f(glGetUniformLocation(suzanne.shader.id, "material.specular"), 0.5f, 0.5f, 0.5f);
+		glUniform1f(glGetUniformLocation(suzanne.shader.id, "material.shininess"), 32.0f);
+
+		glUniform3fv(glGetUniformLocation(suzanne.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
+		glUniform3f(glGetUniformLocation(suzanne.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
+		glUniform3f(glGetUniformLocation(suzanne.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
+		glUniform3f(glGetUniformLocation(suzanne.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
+
+		suzanne.Draw(&model, &view, &projection, drawing_mode);
+		suzanne.Unbind();
+
+		wibblywoobly.shader.Activate();
+		wibblywoobly.Bind();
+
+		glUniform3fv(glGetUniformLocation(wibblywoobly.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));
+		glUniform3fv(glGetUniformLocation(wibblywoobly.shader.id, "centerPosition"), 1, glm::value_ptr(wibblywoobly.position));
+
+		glUniform3f(glGetUniformLocation(wibblywoobly.shader.id, "material.ambient"), 0.2f, 0.2f, 0.2f);
+		glUniform3f(glGetUniformLocation(wibblywoobly.shader.id, "material.diffuse"), 0.362f, 0.686f, 0.368f);
+		glUniform3f(glGetUniformLocation(wibblywoobly.shader.id, "material.specular"), 0.5f, 0.5f, 0.5f);
+		glUniform1f(glGetUniformLocation(wibblywoobly.shader.id, "material.shininess"), 32.0f);
+
+		glUniform3fv(glGetUniformLocation(wibblywoobly.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
+		glUniform3f(glGetUniformLocation(wibblywoobly.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
+		glUniform3f(glGetUniformLocation(wibblywoobly.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
+		glUniform3f(glGetUniformLocation(wibblywoobly.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
+
+		wibblywoobly.Draw(&model, &view, &projection, drawing_mode);
+		wibblywoobly.Unbind();
+
 
 		sphere.shader.Activate();
 		sphere.Bind();

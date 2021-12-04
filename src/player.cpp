@@ -42,6 +42,8 @@ Player::Player(const char* obj_data_filename, const char* vertex_shader_filename
     this->vertices_array.link_vbo(this->vertices_buffer, 0, 3);
     this->normals_array.link_vbo(this->normals_buffer, 1, 3);
 
+    this->position = glm::vec3(0.0, 0.0, 0.0);
+
 }
 
 void Player::Bind()
