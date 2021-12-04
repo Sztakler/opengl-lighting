@@ -197,7 +197,7 @@ int main(int argc, char* argv[])
 
 	// Player cube("data/vertices_player.txt", "data/normals_player.txt", "shaders/player.vsh", "shaders/player.fsh");
 	Drawable cube("data/cube.obj", "shaders/player.vsh", "shaders/player.fsh");
-	Drawable plane("data/plane.obj", "shaders/plane.vsh", "shaders/plane.fsh");
+	Drawable aquarium("data/aquarium_flat.obj", "shaders/player.vsh", "shaders/player.fsh");
 	Drawable bubble("data/sphere.obj", "shaders/player.vsh", "shaders/player.fsh");
 	Drawable suzanne("data/suzanne.obj", "shaders/player.vsh", "shaders/player.fsh");
 	Drawable wibblywoobly("data/wibbly-woobly.obj", "shaders/player.vsh", "shaders/player.fsh");
@@ -284,25 +284,25 @@ int main(int argc, char* argv[])
 		cube.Draw(&model, &view, &projection, drawing_mode);
 		cube.Unbind();
 
-		// plane.shader.Activate();
-		// plane.Bind();
-		// glUniform3fv(glGetUniformLocation(plane.shader.id, "lightColor"), 1, glm::value_ptr(lightColor));
-		// glUniform3fv(glGetUniformLocation(plane.shader.id, "lightPosition"), 1, glm::value_ptr(lightPosition));
-		// glUniform3fv(glGetUniformLocation(plane.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));	
-		// glUniform3fv(glGetUniformLocation(plane.shader.id, "centerPosition"), 1, glm::value_ptr(plane.position));
+		aquarium.shader.Activate();
+		aquarium.Bind();
+		// glUniform3fv(glGetUniformLocation(aquarium.shader.id, "lightColor"), 1, glm::value_ptr(lightColor));
+		// glUniform3fv(glGetUniformLocation(aquarium.shader.id, "lightPosition"), 1, glm::value_ptr(lightPosition));
+		glUniform3fv(glGetUniformLocation(aquarium.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));	
+		glUniform3fv(glGetUniformLocation(aquarium.shader.id, "centerPosition"), 1, glm::value_ptr(aquarium.position));
 
-		// glUniform3f(glGetUniformLocation(plane.shader.id, "material.ambient"), 0.24725, 0.1995, 0.0745);
-		// glUniform3f(glGetUniformLocation(plane.shader.id, "material.diffuse"), 0.362f, 0.686f, 0.368f);
-		// glUniform3f(glGetUniformLocation(plane.shader.id, "material.specular"), 0.628281, 0.555802, 0.366065);
-		// glUniform1f(glGetUniformLocation(plane.shader.id, "material.shininess"), 50.0f);
+		glUniform3f(glGetUniformLocation(aquarium.shader.id, "material.ambient"), 0.2f, 0.2f, 0.2f);
+		glUniform3f(glGetUniformLocation(aquarium.shader.id, "material.diffuse"), 0.441f, 0.668f, 1.000f);
+		glUniform3f(glGetUniformLocation(aquarium.shader.id, "material.specular"), 1.000f, 1.000f, 1.000f);
+		glUniform1f(glGetUniformLocation(aquarium.shader.id, "material.shininess"), 36.0f);
 
-		// glUniform3fv(glGetUniformLocation(plane.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
-		// glUniform3f(glGetUniformLocation(plane.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
-		// glUniform3f(glGetUniformLocation(plane.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
-		// // glUniform3f(glGetUniformLocation(plane.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
+		glUniform3fv(glGetUniformLocation(aquarium.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
+		glUniform3f(glGetUniformLocation(aquarium.shader.id, "light.ambient"), 0.5f, 0.5f, 0.5f);
+		glUniform3f(glGetUniformLocation(aquarium.shader.id, "light.diffuse"), 0.7f, 0.7f, 0.7f);
+		glUniform3f(glGetUniformLocation(aquarium.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
 
-		// plane.Draw(&model, &view, &projection, drawing_mode);
-		// plane.Unbind();
+		aquarium.Draw(&model, &view, &projection, drawing_mode);
+		aquarium.Unbind();
 
 		bubble.shader.Activate();
 		bubble.Bind();
