@@ -1,5 +1,5 @@
 GPP = g++
-NAME =  framework
+NAME =  aquarium
 DEBUG_FLAGS = -g -Wall -I.
 LINKER_FLAGS = -lGLEW  -lGL -lglfw
 OBJ_DIR = obj
