@@ -17,6 +17,7 @@ class VBO
 
         void Bind();
         void Unbind();
+        void Update(std::vector<float>* vertices, GLsizeiptr size);
         void Delete();
 };
 

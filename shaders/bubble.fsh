@@ -24,6 +24,10 @@ struct Light {
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
+
+    float constant;
+    float linear;
+    float quadratic;
 };
 
 uniform Material material;
@@ -34,6 +38,9 @@ void main()
     // vec3 lightColor = (1.0, 1.0, 1.0);
     vec3 norm = normalize(Normal);
     vec3 lightDirection = normalize(light.position - fragmentPosition);
+
+    float distance = length(light.position - fragmentPosition);
+    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
     
     vec3 ambient = material.ambient * light.ambient; 
 
@@ -46,6 +53,13 @@ void main()
     vec3 specular = (material.specular * spec) * light.specular;
 
 
-    vec3 result = ambient + diffuse + specular;
-    FragColor = vec4(result, 1.0);
+
+    /* Beer-Lambert Law https://graphics.fandom.com/wiki/Beer-Lambert_law */
+    float beer_intensity = pow(10.0, -light.linear * light.quadratic * distance);
+
+
+
+    vec3 result = (ambient + diffuse + specular + vec3(0.0314, 0.1686, 0.4275) / 2.0) * beer_intensity;
+    // vec3 result = (ambient + diffuse + specular) * attenuation;
+    FragColor = vec4(result, 0.5);
 } 

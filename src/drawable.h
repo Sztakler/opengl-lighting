@@ -32,10 +32,11 @@ class Drawable
         void Bind();
         void Unbind();
         void Draw();
-        void Draw(glm::mat4* model, glm::mat4* view, glm::mat4* projection, DRAWING_MODE drawing_mode);
+        void Draw(glm::mat4* model, glm::mat4* view, glm::mat4* projection, DRAWING_MODE drawing_mode, bool transparent, glm::vec3 camera_position);
 
     private:
         void loadData(const char* filename, std::vector<float> &data, float scale);
         bool loadFromObjectFile(const char* filename);
         bool replace(std::string& str, const std::string& from, const std::string& to);
+        void sortTriangles(glm::vec3 camera_position);
 };

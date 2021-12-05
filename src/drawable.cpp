@@ -63,11 +63,19 @@ void Drawable::Draw()
     glDrawArrays(GL_TRIANGLE_FAN, 0,  vertices.size() / 3);
 }
 
-void Drawable::Draw(glm::mat4* model, glm::mat4* view, glm::mat4* projection, DRAWING_MODE drawing_mode)
+void Drawable::Draw(glm::mat4* model, glm::mat4* view, glm::mat4* projection, DRAWING_MODE drawing_mode, bool transparent, glm::vec3 camera_position)
 {
     glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(*model));
     glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(*view));
     glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(*projection));
+
+    // if (transparent)
+    // {
+    //     sortTriangles(camera_position);
+    //     this->vertices_buffer.Update(&this->vertices, this->vertices.size() * sizeof(float));
+    //     this->normals_buffer.Update(&this->normals, this->normals.size() * sizeof(float));
+    
+    // }
 
     switch (drawing_mode)
     {
@@ -210,6 +218,7 @@ bool Drawable::loadFromObjectFile(const char* filename)
                 // std::cout << "v " << temp_vertices[f[i] - 1].x << " " << temp_vertices[f[i] - 1].y << " " << temp_vertices[f[i] - 1].z << "\n";
                 // std::cout << "n " << temp_normals[n[i] - 1].x << " " << temp_normals[n[i] - 1].y << " " << temp_normals[n[i] - 1].z << "\n";
             }
+
         }
     }
 
@@ -234,4 +243,48 @@ bool Drawable::replace(std::string& str, const std::string& from, const std::str
         return false;
     str.replace(start_pos, from.length(), to);
     return true;
+}
+
+void Drawable::sortTriangles(glm::vec3 camera_position)
+{
+    std::vector<std::pair<glm::vec3, glm::vec3>> vert_norm_vector;
+
+    for (int i = 0; i < this->vertices.size(); i += 3)
+    {
+        glm::vec3 vert(this->vertices[i], this->vertices[i + 1], this->vertices[i + 2]);
+        glm::vec3 norm(this->normals[i], this->normals[i + 1], this->normals[i + 2]);
+        std::pair<glm::vec3, glm::vec3> pair = {vert, norm};
+
+        vert_norm_vector.push_back(pair);
+    }
+
+    
+
+    std::sort(std::begin(vert_norm_vector), std::end(vert_norm_vector),
+          [camera_position](const std::pair<glm::vec3, glm::vec3> &vert_a, const std::pair<glm::vec3, glm::vec3> &vert_b) {
+            return glm::length(vert_a.first - camera_position) < glm::length(vert_b.first - camera_position);
+          });
+
+    // std::cout <<  this->vertices.size() << " " << vert_norm_vector.size() << std::endl;
+    // std::cout << "(" << p.first.x << ", " << p.first.y << ", " << p.first.z << ") (";
+
+    std::cout << this->vertices[0] << " " << this->vertices[1] << " " << this->vertices[2] << std::endl;
+    std::cout << this->normals[0] << " " << this->normals[1] << " " << this->normals[2] << std::endl;
+
+    int j = 0;
+    for (int i = 0; i < vert_norm_vector.size(); i++)
+    {
+        this->vertices[j++]     = vert_norm_vector[i].first.x;
+        // this->normals[j++]     = vert_norm_vector[i].second.x;
+
+        this->vertices[j++] = vert_norm_vector[i].first.x;
+        // this->normals[j++] = vert_norm_vector[i].second.y;
+
+        this->vertices[j++] = vert_norm_vector[i].first.x;
+        // this->normals[j++] = vert_norm_vector[i].second.z;
+
+        // std::cout << "(" << p.first.x << ", " << p.first.y << ", " << p.first.z << ") (";
+        // std::cout << "(" << p.second.x << ", " << p.second.y << ", " << p.second.z << ")\n";
+    }
+
 }

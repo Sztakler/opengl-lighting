@@ -192,16 +192,29 @@ int main(int argc, char* argv[])
 	glEnable(GL_DEPTH_TEST);
 	// Accept fragment if it closer to the player_camera than the former one
 	glDepthFunc(GL_LESS);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_FRONT);
+	glFrontFace(GL_CCW);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA);
 
 
 
-	Drawable cube("data/cube.obj", "shaders/player.vsh", "shaders/player.fsh");
 	Drawable aquarium("data/aquarium_smooth.obj", "shaders/aquarium.vsh", "shaders/aquarium.fsh");
-	// return 0;
+	Drawable cube("data/cube.obj", "shaders/player.vsh", "shaders/player.fsh");
+	Drawable plane("data/plane.obj", "shaders/player.vsh", "shaders/player.fsh");
 	Drawable bubble("data/sphere.obj", "shaders/player.vsh", "shaders/player.fsh");
 	Drawable suzanne("data/suzanne.obj", "shaders/player.vsh", "shaders/player.fsh");
 	Drawable wibblywoobly("data/wibbly-woobly.obj", "shaders/player.vsh", "shaders/player.fsh");
 	
+	std::vector<Drawable*> bubbles;
+
+	int n_bubbles = 20;
+	for (int i = 0; i < n_bubbles; i++)
+	{
+		bubbles.push_back(new Drawable("data/sphere.obj", "shaders/player.vsh", "shaders/player.fsh"));
+		bubbles[i]->position = glm::vec3(rand() % 10, 5.0, rand() % 20);
+	}
+
 	Sphere sphere(0.05f, 36, 18);
 
 	glm::mat4 model = glm::mat4(1.0f);
@@ -216,46 +229,69 @@ int main(int argc, char* argv[])
 	
 	player_camera.front = glm::vec3(0.0, 0.0, 0.0);
 
-	glm::vec3 lightPosition(0.0, 0.0, 0.0);
+	glm::vec3 lightPosition(0.0, 10.0, 0.0);
 	glm::vec3 lightColor(1.0f, 1.0f, 1.0f);	
+	
+
+	glm::vec3 aquarium_center(10.0, 10.0, 20.0);
 
 	sphere.position = lightPosition;
 
-	cube.position.x += 3.0f;
-	cube.position.y += 2.0f;
-	cube.position.z += 4.0f;
+	aquarium.position.x += 14.362542;
+	aquarium.position.y += 8.999555;
+	aquarium.position.z += 19.583765;
 
+
+	plane.position.y += 8.999555;
+
+	cube.position = aquarium_center;
+	cube.position.x = 0.0f;
+	cube.position.y = 1.001f;
+	cube.position.z = 0.0f;
+
+	bubble.position = aquarium_center;
 	bubble.position.x += 1.0f;
 	bubble.position.y += 1.0f;
 	bubble.position.z += 4.0f;
 
+	suzanne.position = aquarium_center;
 	suzanne.position.x += -2.0f;
 	suzanne.position.y += 1.5f;
 	suzanne.position.z += 3.0f;
 
-	wibblywoobly.position.x += 0.0;
+	wibblywoobly.position = aquarium_center;
 	wibblywoobly.position.y += 3.0;
 	wibblywoobly.position.z += 2.0;
 
 	float light_constant = 0.5;
-	float light_linear = 0.0009;
-	float light_quadratic = 0.008;
+	float light_linear = 0.09;
+	float light_quadratic = 0.2;
+	float light_cutOff = 12.5;
+	float light_outCutOff = 17.5;
+
+	unsigned int counter = 0; // disables VSync -- unlimited FPS
+	
+	// glfwSwapInterval(0);
 
 	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0)
 	{	
 		float currentFrame = glfwGetTime();
 		delta_time = currentFrame - lastFrame;
-		lastFrame = currentFrame;  
+		counter++;
+
+		if (delta_time >= 1.0 / 30.0)
+		{
+			std::string FPS = std::to_string((1.0 / delta_time) * counter);
+			std::string ms = std::to_string((delta_time / counter) * 1000);
+			std::string newTitle = "Aquarium - " + FPS + "FPS / " + ms + "ms";
+			glfwSetWindowTitle(window, newTitle.c_str());
+			counter = 0;
+			lastFrame = currentFrame;  
+		}
 
 		processInput(window);
-		// lightPosition = sphere.position;
 
-		// lightPosition.y = cos(currentFrame) * 0.0;
-		lightPosition.x = cos(currentFrame) - 5.0;
-		lightPosition.z = sin(currentFrame) * 18.0;
-
-		sphere.position = lightPosition;
-
+		lightPosition = player_camera.position;
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glClearColor(0.07f, 0.07f, 0.07f, 1.0f);
@@ -279,38 +315,100 @@ int main(int argc, char* argv[])
 		glUniform1f(glGetUniformLocation(cube.shader.id, "material.shininess"), 32.0f);
 
 		glUniform3fv(glGetUniformLocation(cube.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
+		glUniform3fv(glGetUniformLocation(cube.shader.id, "light.direction"), 1, glm::value_ptr(player_camera.front));
 		glUniform3f(glGetUniformLocation(cube.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
 		glUniform3f(glGetUniformLocation(cube.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
 		glUniform3f(glGetUniformLocation(cube.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
 		glUniform1f(glGetUniformLocation(cube.shader.id, "light.constant"), light_constant);
 		glUniform1f(glGetUniformLocation(cube.shader.id, "light.linear"), light_linear);
 		glUniform1f(glGetUniformLocation(cube.shader.id, "light.quadratic"), light_quadratic);
+		glUniform1f(glGetUniformLocation(cube.shader.id, "light.cutOff"), glm::cos(glm::radians(light_cutOff)));
+		glUniform1f(glGetUniformLocation(cube.shader.id, "light.outCutOff"), glm::cos(glm::radians(light_outCutOff)));
 
-		cube.Draw(&model, &view, &projection, drawing_mode);
+		glEnable(GL_BLEND);
+		cube.Draw(&model, &view, &projection, drawing_mode, true, player_camera.position);
+		glDisable(GL_BLEND);
 		cube.Unbind();
 
 		aquarium.shader.Activate();
 		aquarium.Bind();
-		// glUniform3fv(glGetUniformLocation(aquarium.shader.id, "lightColor"), 1, glm::value_ptr(lightColor));
-		// glUniform3fv(glGetUniformLocation(aquarium.shader.id, "lightPosition"), 1, glm::value_ptr(lightPosition));
 		glUniform3fv(glGetUniformLocation(aquarium.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));	
 		glUniform3fv(glGetUniformLocation(aquarium.shader.id, "centerPosition"), 1, glm::value_ptr(aquarium.position));
 
-		glUniform3f(glGetUniformLocation(aquarium.shader.id, "material.ambient"), 0.441f / 4, 0.668f / 4, 1.000f / 4);
-		glUniform3f(glGetUniformLocation(aquarium.shader.id, "material.diffuse"), 0.441f, 0.668f, 1.000f);
-		glUniform3f(glGetUniformLocation(aquarium.shader.id, "material.specular"), 0.441f, 0.668f, 1.000f);
+		glUniform3f(glGetUniformLocation(aquarium.shader.id, "material.ambient"), 0.0314 / 4, 0.1686 / 4, 0.4275 / 4);
+		glUniform3f(glGetUniformLocation(aquarium.shader.id, "material.diffuse"), 0.0314, 0.1686, 0.4275);
+		glUniform3f(glGetUniformLocation(aquarium.shader.id, "material.specular"), 0.0314, 0.1686, 0.4275);
 		glUniform1f(glGetUniformLocation(aquarium.shader.id, "material.shininess"), 36.0f);
 
 		glUniform3fv(glGetUniformLocation(aquarium.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
+		glUniform3fv(glGetUniformLocation(aquarium.shader.id, "light.direction"), 1, glm::value_ptr(player_camera.front));
 		glUniform3f(glGetUniformLocation(aquarium.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
 		glUniform3f(glGetUniformLocation(aquarium.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
 		glUniform3f(glGetUniformLocation(aquarium.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
 		glUniform1f(glGetUniformLocation(aquarium.shader.id, "light.constant"), light_constant);
 		glUniform1f(glGetUniformLocation(aquarium.shader.id, "light.linear"), light_linear);
 		glUniform1f(glGetUniformLocation(aquarium.shader.id, "light.quadratic"), light_quadratic);
+		glUniform1f(glGetUniformLocation(aquarium.shader.id, "light.cutOff"), glm::cos(glm::radians(light_cutOff)));
+		glUniform1f(glGetUniformLocation(aquarium.shader.id, "light.outCutOff"), glm::cos(glm::radians(light_outCutOff)));
 
-		aquarium.Draw(&model, &view, &projection, drawing_mode);
+		aquarium.Draw(&model, &view, &projection, drawing_mode, false, player_camera.position);
 		aquarium.Unbind();
+
+		plane.shader.Activate();
+		plane.Bind();
+		glUniform3fv(glGetUniformLocation(plane.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));	
+		glUniform3fv(glGetUniformLocation(plane.shader.id, "centerPosition"), 1, glm::value_ptr(plane.position));
+
+		glUniform3f(glGetUniformLocation(plane.shader.id, "material.ambient"), 0.0, 0.4039, 0.8667);
+		glUniform3f(glGetUniformLocation(plane.shader.id, "material.diffuse"), 0.0, 0.4039, 0.8667);
+		glUniform3f(glGetUniformLocation(plane.shader.id, "material.specular"), 0.0, 0.4039, 0.8667);
+		glUniform1f(glGetUniformLocation(plane.shader.id, "material.shininess"), 36.0f);
+
+		glUniform3fv(glGetUniformLocation(plane.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
+		glUniform3fv(glGetUniformLocation(plane.shader.id, "light.direction"), 1, glm::value_ptr(player_camera.front));
+		glUniform3f(glGetUniformLocation(plane.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
+		glUniform3f(glGetUniformLocation(plane.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
+		glUniform3f(glGetUniformLocation(plane.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
+		glUniform1f(glGetUniformLocation(plane.shader.id, "light.constant"), light_constant);
+		glUniform1f(glGetUniformLocation(plane.shader.id, "light.linear"), light_linear);
+		glUniform1f(glGetUniformLocation(plane.shader.id, "light.quadratic"), light_quadratic);
+		glUniform1f(glGetUniformLocation(plane.shader.id, "light.cutOff"), glm::cos(glm::radians(light_cutOff)));
+		glUniform1f(glGetUniformLocation(plane.shader.id, "light.outCutOff"), glm::cos(glm::radians(light_outCutOff)));
+		
+		glDisable(GL_CULL_FACE);
+		plane.Draw(&model, &view, &projection, drawing_mode, false, player_camera.position);
+		glDisable(GL_CULL_FACE);
+		plane.Unbind();
+
+		for (auto bubble : bubbles)
+		{
+			bubble->shader.Activate();
+			bubble->Bind();
+			
+			glUniform3fv(glGetUniformLocation(bubble->shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));
+			glUniform3fv(glGetUniformLocation(bubble->shader.id, "centerPosition"), 1, glm::value_ptr(bubble->position));
+
+			glUniform3f(glGetUniformLocation(bubble->shader.id, "material.ambient"), 0.2f, 0.2f, 0.2f);
+			glUniform3f(glGetUniformLocation(bubble->shader.id, "material.diffuse"), 0.362f, 0.686f, 0.368f);
+			glUniform3f(glGetUniformLocation(bubble->shader.id, "material.specular"), 0.5f, 0.5f, 0.5f);
+			glUniform1f(glGetUniformLocation(bubble->shader.id, "material.shininess"), 32.0f);
+
+			glUniform3fv(glGetUniformLocation(bubble->shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
+			glUniform3fv(glGetUniformLocation(bubble->shader.id, "light.direction"), 1, glm::value_ptr(player_camera.front));
+			glUniform3f(glGetUniformLocation(bubble->shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
+			glUniform3f(glGetUniformLocation(bubble->shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
+			glUniform3f(glGetUniformLocation(bubble->shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
+			glUniform1f(glGetUniformLocation(bubble->shader.id, "light.constant"), light_constant);
+			glUniform1f(glGetUniformLocation(bubble->shader.id, "light.linear"), light_linear);
+			glUniform1f(glGetUniformLocation(bubble->shader.id, "light.quadratic"), light_quadratic);
+			glUniform1f(glGetUniformLocation(bubble->shader.id, "light.cutOff"), glm::cos(glm::radians(light_cutOff)));
+			glUniform1f(glGetUniformLocation(bubble->shader.id, "light.outCutOff"), glm::cos(glm::radians(light_outCutOff)));
+			
+			glEnable(GL_BLEND);
+			bubble->Draw(&model, &view, &projection, drawing_mode, false, player_camera.position);
+			glDisable(GL_BLEND);
+			bubble->Unbind();
+		}
 
 		bubble.shader.Activate();
 		bubble.Bind();
@@ -324,14 +422,19 @@ int main(int argc, char* argv[])
 		glUniform1f(glGetUniformLocation(bubble.shader.id, "material.shininess"), 32.0f);
 
 		glUniform3fv(glGetUniformLocation(bubble.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
+		glUniform3fv(glGetUniformLocation(bubble.shader.id, "light.direction"), 1, glm::value_ptr(player_camera.front));
 		glUniform3f(glGetUniformLocation(bubble.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
 		glUniform3f(glGetUniformLocation(bubble.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
 		glUniform3f(glGetUniformLocation(bubble.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
 		glUniform1f(glGetUniformLocation(bubble.shader.id, "light.constant"), light_constant);
 		glUniform1f(glGetUniformLocation(bubble.shader.id, "light.linear"), light_linear);
 		glUniform1f(glGetUniformLocation(bubble.shader.id, "light.quadratic"), light_quadratic);
-
-		bubble.Draw(&model, &view, &projection, drawing_mode);
+		glUniform1f(glGetUniformLocation(bubble.shader.id, "light.cutOff"), glm::cos(glm::radians(light_cutOff)));
+		glUniform1f(glGetUniformLocation(bubble.shader.id, "light.outCutOff"), glm::cos(glm::radians(light_outCutOff)));
+		
+		glEnable(GL_BLEND);
+		bubble.Draw(&model, &view, &projection, drawing_mode, false, player_camera.position);
+		glDisable(GL_BLEND);
 		bubble.Unbind();
 
 		suzanne.shader.Activate();
@@ -346,14 +449,17 @@ int main(int argc, char* argv[])
 		glUniform1f(glGetUniformLocation(suzanne.shader.id, "material.shininess"), 32.0f);
 
 		glUniform3fv(glGetUniformLocation(suzanne.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
+		glUniform3fv(glGetUniformLocation(suzanne.shader.id, "light.direction"), 1, glm::value_ptr(player_camera.front));
 		glUniform3f(glGetUniformLocation(suzanne.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
 		glUniform3f(glGetUniformLocation(suzanne.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
 		glUniform3f(glGetUniformLocation(suzanne.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
 		glUniform1f(glGetUniformLocation(suzanne.shader.id, "light.constant"), light_constant);
 		glUniform1f(glGetUniformLocation(suzanne.shader.id, "light.linear"), light_linear);
 		glUniform1f(glGetUniformLocation(suzanne.shader.id, "light.quadratic"), light_quadratic);
+		glUniform1f(glGetUniformLocation(suzanne.shader.id, "light.cutOff"), glm::cos(glm::radians(light_cutOff)));
+		glUniform1f(glGetUniformLocation(suzanne.shader.id, "light.outCutOff"), glm::cos(glm::radians(light_outCutOff)));
 
-		suzanne.Draw(&model, &view, &projection, drawing_mode);
+		suzanne.Draw(&model, &view, &projection, drawing_mode, false, player_camera.position);
 		suzanne.Unbind();
 
 		wibblywoobly.shader.Activate();
@@ -368,24 +474,18 @@ int main(int argc, char* argv[])
 		glUniform1f(glGetUniformLocation(wibblywoobly.shader.id, "material.shininess"), 32.0f);
 
 		glUniform3fv(glGetUniformLocation(wibblywoobly.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
+		glUniform3fv(glGetUniformLocation(wibblywoobly.shader.id, "light.direction"), 1, glm::value_ptr(player_camera.front));
 		glUniform3f(glGetUniformLocation(wibblywoobly.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
 		glUniform3f(glGetUniformLocation(wibblywoobly.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
 		glUniform3f(glGetUniformLocation(wibblywoobly.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
 		glUniform1f(glGetUniformLocation(wibblywoobly.shader.id, "light.constant"), light_constant);
 		glUniform1f(glGetUniformLocation(wibblywoobly.shader.id, "light.linear"), light_linear);
 		glUniform1f(glGetUniformLocation(wibblywoobly.shader.id, "light.quadratic"), light_quadratic);
+		glUniform1f(glGetUniformLocation(wibblywoobly.shader.id, "light.cutOff"), glm::cos(glm::radians(light_cutOff)));
+		glUniform1f(glGetUniformLocation(wibblywoobly.shader.id, "light.outCutOff"), glm::cos(glm::radians(light_outCutOff)));
 
-		wibblywoobly.Draw(&model, &view, &projection, drawing_mode);
+		wibblywoobly.Draw(&model, &view, &projection, drawing_mode, false, player_camera.position);
 		wibblywoobly.Unbind();
-
-
-		sphere.shader.Activate();
-		sphere.Bind();
-		sphere.Draw(&model, &view, &projection, drawing_mode);
-		sphere.Unbind();
-
-		// sphere.position = player_camera.position;
-
 
 		// Swap the back buffer with the front buffer
 		glfwSwapBuffers(window);
