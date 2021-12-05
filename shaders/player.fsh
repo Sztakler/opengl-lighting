@@ -18,7 +18,27 @@ struct Material {
     float shininess;
 }; 
 
-struct Light {
+struct DirLight {
+    vec3 direction;
+	
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+};
+
+struct PointLight {
+    vec3 position;
+    
+    float constant;
+    float linear;
+    float quadratic;
+	
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+};
+
+struct SpotLight {
     vec3 position;
     vec3 direction;
   
@@ -34,41 +54,93 @@ struct Light {
     float outCutOff;
 
 };
+vec3 CalcDirLight(DirLight light, Material material, vec3 normal, vec3 fragPos, vec3 viewDir);
+vec3 CalcPointLight(PointLight light, Material material, vec3 normal, vec3 fragPos, vec3 viewDir);
+vec3 calculateSpotLight(SpotLight light, Material material, vec3 normal, vec3 fragPos, vec3 viewDir);
 
 uniform Material material;
-uniform Light light;
+uniform SpotLight spotlight;
+uniform DirLight directionlight;
 
 void main()
 {
-    // vec3 lightColor = (1.0, 1.0, 1.0);
     vec3 norm = normalize(Normal);
-    vec3 lightDirection = normalize(light.position - fragmentPosition);
-
-    float distance = length(light.position - fragmentPosition);
-    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
-
-    /* Beer-Lambert Law https://graphics.fandom.com/wiki/Beer-Lambert_law */
-    float beer_intensity = pow(10.0, -light.linear * light.quadratic * distance * 2);
-    
-    float theta = dot(lightDirection, normalize(-light.direction));
-    float epsilon = light.cutOff -light.outCutOff;
-    float intensity = clamp( (theta - light.outCutOff) / epsilon, 0.0, 1.0);
-
-
-    vec3 ambient = material.ambient * light.ambient; 
-
-    float diff = max(dot(norm, lightDirection), 0.0);
-    vec3 diffuse = (diff * material.diffuse) * light.diffuse;
-
     vec3 viewDirection = normalize(viewerPosition - fragmentPosition);
-    vec3 reflectionDirection = reflect(-lightDirection, norm);
-    float spec = pow(max(dot(viewDirection, reflectionDirection), 0.0), material.shininess);
-    vec3 specular = (material.specular * spec) * light.specular;
+    vec3 lightDirection = normalize(spotlight.position - fragmentPosition);
 
-    diffuse *= intensity;
-    specular *= intensity;
+    vec3 result = CalcDirLight(directionlight, material, norm, fragmentPosition, viewDirection);
+    result += calculateSpotLight(spotlight, material, norm, fragmentPosition, viewDirection);
 
-    vec3 result = (ambient + diffuse + specular + vec3(0.0314, 0.1686, 0.4275)) * beer_intensity ;
-    // vec3 result = (ambient + diffuse + specular) * attenuation;
     FragColor = vec4(result, 1.0);
 } 
+
+vec3 CalcDirLight(DirLight light, Material material, vec3 normal, vec3 fragPos, vec3 viewDir)
+{
+    vec3 lightDir = normalize(light.direction);
+    // diffuse shading
+    float diff = max(dot(normal, lightDir), 0.0);
+    // specular shading
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+
+    // /* Beer-Lambert Law https://graphics.fandom.com/wiki/Beer-Lambert_law */
+    float beer_intensity = pow(10.0, -1.0 * 0.04 * (23.0 - fragPos.y));
+
+    // combine results
+    vec3 ambient = light.ambient * material.diffuse;
+    vec3 diffuse = light.diffuse * diff * material.diffuse;
+    vec3 specular = light.specular * spec * material.specular;
+    return (ambient + diffuse + specular + vec3(0.0314, 0.1686, 0.4275)) * beer_intensity;
+}
+
+vec3 CalcPointLight(PointLight light, Material material, vec3 normal, vec3 fragPos, vec3 viewDir)
+{
+    vec3 lightDir = normalize(light.position - fragPos);
+    // diffuse shading
+    float diff = max(dot(normal, lightDir), 0.0);
+    // specular shading
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    // attenuation
+    float distance = length(light.position - fragPos);
+    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
+    // combine results
+    vec3 ambient = light.ambient * material.diffuse;
+    vec3 diffuse = light.diffuse * diff * material.diffuse;
+    vec3 specular = light.specular * spec * material.specular;
+    ambient *= attenuation;
+    diffuse *= attenuation;
+    specular *= attenuation;
+    return (ambient + diffuse + specular);
+}
+
+vec3 calculateSpotLight(SpotLight light, Material material, vec3 normal, vec3 fragPos, vec3 viewDir)
+{
+    vec3 lightDir = normalize(light.position - fragPos);
+    // // diffuse shading
+    float diff = max(dot(normal, lightDir), 0.0);
+    // // specular shading
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+
+    // // attenuation
+    float distance = length(light.position - fragPos);
+    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
+    // spotlight intensity
+    float theta = dot(lightDir, normalize(-light.direction)); 
+    float epsilon = light.cutOff - light.outCutOff;
+    float intensity = clamp((theta - light.outCutOff) / epsilon, 0.0, 1.0);
+    // combine results
+    vec3 ambient = light.ambient * material.diffuse;
+    vec3 diffuse = light.diffuse * diff * material.diffuse;
+    vec3 specular = light.specular * spec * material.specular;
+
+    // /* Beer-Lambert Law https://graphics.fandom.com/wiki/Beer-Lambert_law */
+    float beer_intensity = pow(10.0, -1.0 * 0.03 * distance * 2);
+
+    // ambient *= attenuation * intensity;
+    // diffuse *= attenuation * intensity;
+    // specular *= attenuation * intensity;
+    return (ambient + diffuse + specular + vec3(0.0314, 0.1686, 0.4275)) * beer_intensity * intensity + vec3(0.0118, 0.051, 0.1216);
+    // return vec3(0.7804, 0.2784, 0.2784);
+}

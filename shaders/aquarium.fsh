@@ -48,7 +48,7 @@ void main()
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
 
     /* Beer-Lambert Law https://graphics.fandom.com/wiki/Beer-Lambert_law */
-    float beer_intensity = pow(10.0, -light.linear * light.quadratic * distance);
+    float beer_intensity = pow(10.0, -light.linear * light.quadratic * distance * 2);
     
     float theta = dot(lightDirection, normalize(-light.direction));
     float epsilon = light.cutOff -light.outCutOff;
@@ -65,10 +65,10 @@ void main()
     float spec = pow(max(dot(viewDirection, reflectionDirection), 0.0), material.shininess);
     vec3 specular = (material.specular * spec) * light.specular;
 
-    diffuse *= intensity;
-    specular *= intensity;
+    // diffuse *= intensity;
+    // specular *= intensity;
 
-    vec3 result = (ambient + diffuse + specular + vec3(0.0314, 0.1686, 0.4275)) * beer_intensity ;
+    vec3 result = (ambient + diffuse + specular + vec3(0.0314, 0.1686, 0.4275)) * beer_intensity * intensity ;
     // vec3 result = (ambient + diffuse + specular) * attenuation;
     FragColor = vec4(result, 1.0);
 } 

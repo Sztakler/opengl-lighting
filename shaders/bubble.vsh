@@ -11,7 +11,6 @@ layout (location = 2) uniform mat4 projection;
 
 uniform vec3 centerPosition;
 
-out vec3 objectColor;
 out vec3 fragmentPosition;
 out vec3 Normal;
 
@@ -19,7 +18,6 @@ void main()
 {   
     vec3 position = aPosition + centerPosition;
     gl_Position = projection * view * model * vec4(position, 1.0);
-    objectColor = vec3(0.3f, 0.3f, 0.3f);
     fragmentPosition = vec3(model * vec4(position, 1.0f));
     Normal = mat3(transpose(inverse(model))) * aNormal;
 }

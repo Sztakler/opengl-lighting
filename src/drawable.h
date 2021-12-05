@@ -1,3 +1,6 @@
+#ifndef DRAWABLE_H
+#define DRAWABLE_H
+
 #include "includes.h"
 #include "vao.h"
 #include "vbo.h"
@@ -40,3 +43,5 @@ class Drawable
         bool replace(std::string& str, const std::string& from, const std::string& to);
         void sortTriangles(glm::vec3 camera_position);
 };
+
+#endif
