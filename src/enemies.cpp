@@ -4,10 +4,10 @@ Enemies::Enemies(const char* obj_data_filename,
     const char* vertex_shader_filename, const char* fragment_shader_filename,
     int seed, glm::vec3 boardsize, Material material, int n_enemies)
 {
-    printf("lalala\n");
-    this->translations = std::vector<float>(n_enemies * 3);
-    this->positions    = std::vector<glm::vec3>(n_enemies);
-    this->velocities   = std::vector<float>(n_enemies);
+    // printf("lalala\n");
+    // this->translations = std::vector<float>(n_enemies * 3);
+    // this->positions    = std::vector<glm::vec3>(n_enemies);
+    // this->velocities   = std::vector<float>(n_enemies);
     
     srand(seed);
 
@@ -15,20 +15,21 @@ Enemies::Enemies(const char* obj_data_filename,
 
     for (int i = 0; i < n_enemies * 3; i += 3)
     {
-        this->translations[i] = rand() % 2000 / 100.0;
-        this->translations[i + 1] = rand() % 2000 / 100.0;
-        this->translations[i + 2] = rand() % 4000 / 100.0;
+        this->translations.push_back(rand() % 2000 / 100.0);
+        this->translations.push_back(rand() % 2000 / 100.0);
+        this->translations.push_back(rand() % 4000 / 100.0);
         
-        this->velocities[i] = rand() % 100 / 1000;
+        this->velocities.push_back(rand() % 100 / 1000);
     }
 
 
 
-    for (int i = 0; i < this->positions.size(); i++)
+    for (int i = 0; i < n_enemies; i++)
     {
-        this->positions[i].x = this->translations[3 * i];
-        this->positions[i].y = this->translations[3 * i + 1];
-        this->positions[i].z = this->translations[3 * i + 2];
+        this->positions.push_back(glm::vec3( this->translations[3 * i],
+                                             this->translations[3 * i + 1], 
+                                             this->translations[3 * i + 2] ));
+        printf("%f, %f, %f\n", this->positions.back().x, this->positions.back().y, this->positions.back().z);
     }
 
     this->vertices_array = VAO();

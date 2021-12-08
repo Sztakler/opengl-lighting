@@ -205,8 +205,7 @@ int main(int argc, char* argv[])
 					Material{glm::vec3(0.0, 0.4039, 0.8667), glm::vec3(0.0, 0.4039, 0.8667),
 							 glm::vec3(0.0, 0.4039, 0.8667), 36.0f});
 
-	int n_bubbles = 10;
-	#define N_BUBBLES 10
+	int n_bubbles = 1;
 	float bubble_base_speed = 0.01;
 	// std::vector<Drawable*> bubbles(n_bubbles);
 	// for (int i = 0; i < n_bubbles; i++)
@@ -220,7 +219,7 @@ int main(int argc, char* argv[])
 
 	Enemies bubbles("data/sphere.obj", "shaders/enemies.vsh", "shaders/enemies.fsh",
 		seed, glm::vec3(20, 20, 40), Material{glm::vec3(0.2f, 0.2f, 0.2f), glm::vec3(0.362f, 0.686f, 0.368f),
-	 	glm::vec3(0.5f, 0.5f, 0.5f), 32.0f}, 100);
+	 	glm::vec3(0.5f, 0.5f, 0.5f), 32.0f}, n_bubbles);
 
 	Sphere sphere(0.05f, 36, 18);
 
@@ -382,18 +381,18 @@ int main(int argc, char* argv[])
 			glDisable(GL_CULL_FACE);
 			glEnable(GL_BLEND);
 			// bubbles.Draw(&model, &view, &projection, drawing_mode, false, player_camera.position);
-			bubbles.DrawInstanced(100, &model, &view, &projection, drawing_mode);
+			bubbles.DrawInstanced(n_bubbles, &model, &view, &projection, drawing_mode);
 			glDisable(GL_BLEND);
 			glEnable(GL_CULL_FACE);
 			bubbles.Unbind();
 		// }
 
 		// Collision detection
-
-		// for (glm::vec3 bubble_position : bubbles.positions)
-		// {
-		// 	printf("distance: %f\n", glm::length(bubble_position - player_camera.position));
-		// }
+	
+		for (glm::vec3 bubble_position : bubbles.positions)
+		{
+			printf("distance: %f\n", glm::length(bubble_position - player_camera.position));
+		}
 
 		// Swap the back buffer with the front buffer
 		glfwSwapBuffers(window);
