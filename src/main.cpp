@@ -389,11 +389,16 @@ int main(int argc, char* argv[])
 
 		// Collision detection
 
+		if (player_camera.position.x < 0.1 || player_camera.position.x > 19.9 || 
+			player_camera.position.y < 0.1 || player_camera.position.y > 19.9 || 
+			player_camera.position.z < 0.1 || player_camera.position.z > 39.9)
+			player_camera.undoMove(delta_time);
+
+
 		for (glm::vec3 bubble_position : bubbles.positions)
 		{
 			if (glm::length(bubble_position - player_camera.position) < 2.0)
 				player_camera.undoMove(delta_time);
-			printf("distance: %f\n", glm::length(bubble_position - player_camera.position));
 		}
 
 		// Swap the back buffer with the front buffer

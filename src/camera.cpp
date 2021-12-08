@@ -140,6 +140,11 @@ void Camera::undoMove(float delta_time)
                  position -= right * velocity;
                 //  printf("RIGHT ");
                 break;
+            case UP:
+                position -= up * velocity;
+                break;
+            case DOWN:
+                position += up * velocity;
             default:
                 break;
         }
