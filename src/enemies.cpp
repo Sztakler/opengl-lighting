@@ -1,143 +1,72 @@
 #include "enemies.h"
 
-Enemies::Enemies(const char* vertices_data_filename, const char* colors_data_filename,
-    const char* vertex_shader_filename, const char* fragment_shader_filename, int seed, int boardsize)
+Enemies::Enemies(const char* obj_data_filename,
+    const char* vertex_shader_filename, const char* fragment_shader_filename,
+    int seed, glm::vec3 boardsize, Material material, int n_enemies)
 {
-    loadData(vertices_data_filename, this->vertices, 0.15);
-
-    int index = 0;
-    float offset = 0.1f;
-    glm::vec3 euler_angles;
-    AABB new_aabb;
-
+    printf("lalala\n");
+    this->translations = std::vector<float>(n_enemies * 3);
+    this->positions    = std::vector<glm::vec3>(n_enemies);
+    this->velocities   = std::vector<float>(n_enemies);
+    
     srand(seed);
 
-    for(int y = 0; y < 2 * boardsize; y += 2)
+    loadFromObjectFile(obj_data_filename);
+
+    for (int i = 0; i < n_enemies * 3; i += 3)
     {
-        for(int x = 0; x < 2 * boardsize; x += 2)
-        {
-            for (int z = 0; z < 2 * boardsize; z += 2)
-            {
-                glm::vec3 translation;
-                glm::vec3 rotation;
-
-                translation = glm::vec3( (float)x / (float)boardsize + offset,
-                                         (float)y / (float)boardsize + offset,
-                                         (float)z / (float)boardsize + offset );
-                translations.push_back(translation.x);
-                translations.push_back(translation.y);
-                translations.push_back(translation.z);
-
-                rotation = glm::vec3( glm::radians((float)(rand() % 180)),
-                                      glm::radians((float)(rand() % 180)),
-                                      glm::radians((float)(rand() % 180)) );
-                rotations.push_back(rotation.x);
-                rotations.push_back(rotation.y);
-                rotations.push_back(rotation.z);
-
-                float r_sin = sin(rotation.x);
-                float r_cos = cos(rotation.x);
-
-                glm::mat3 rotation_x = glm::mat3( 1.f, 0.f, 0.f,
-                                                  0.f, r_cos, -r_sin,
-                                                  0.f, r_sin, r_cos);
-
-                glm::mat3 rotation_y = glm::mat3( r_cos, 0, r_sin,
-                                                  0, 1, 0,
-                                                  -r_sin, 0, r_cos);
-
-                glm::mat3 rotation_z = glm::mat3( r_cos, -r_sin, 0,
-                                                  r_sin, r_cos, 0,
-                                                  0, 0, 1);
-
-                glm::mat3 rotation_zyx = rotation_z * rotation_y * rotation_x;
-
-                std::vector<glm::vec3> enemy_vertices;
-                glm::vec3 vertex_coordinates;
-
-                translation.x *= 2;
-                translation.y *= 2;
-                translation.z *= 2;
-
-                for (int i = 0; i < 4; i++)  // dla każdego wierzchołka czworościanu
-                {   
-                    // współrzędne wierzchołka
-                    vertex_coordinates = glm::vec3( vertices[i * 3],
-                                                    vertices[i * 3 + 1],
-                                                    vertices[i * 3 + 2] );
-
-
-                    // printf("TRANSLATION %f, %f, %f\n", translation.x, translation.y, translation.z);
-
-                    glm::vec3 pos = rotation_zyx * vertex_coordinates;
-                    glm::vec3 position = pos + translation;
-
-                    enemy_vertices.push_back(position);
-                }
+        this->translations[i] = rand() % 2000 / 100.0;
+        this->translations[i + 1] = rand() % 2000 / 100.0;
+        this->translations[i + 2] = rand() % 4000 / 100.0;
+        
+        this->velocities[i] = rand() % 100 / 1000;
+    }
 
 
 
-                new_aabb.Bminx = std::min( {enemy_vertices[0].x, enemy_vertices[1].x, enemy_vertices[2].x, enemy_vertices[3].x} );
-                new_aabb.Bmaxx = std::max( {enemy_vertices[0].x, enemy_vertices[1].x, enemy_vertices[2].x, enemy_vertices[3].x} );
-                
-                new_aabb.Bminy = std::min( {enemy_vertices[0].y, enemy_vertices[1].y, enemy_vertices[2].y, enemy_vertices[3].y} );
-                new_aabb.Bmaxy = std::max( {enemy_vertices[0].y, enemy_vertices[1].y, enemy_vertices[2].y, enemy_vertices[3].y} );
-
-                new_aabb.Bminz = std::min( {enemy_vertices[0].z, enemy_vertices[1].z, enemy_vertices[2].z, enemy_vertices[3].z} );
-                new_aabb.Bmaxz = std::max( {enemy_vertices[0].z, enemy_vertices[1].z, enemy_vertices[2].z, enemy_vertices[3].z} );
-
-                // printf("AABB %f, %f, %f, %f, %f, %f\n", new_aabb.Bminx, new_aabb.Bmaxx, new_aabb.Bminy, new_aabb.Bmaxy, new_aabb.Bminz, new_aabb.Bmaxz);
-
-                this->enemies_boxes.push_back(new_aabb);
-            }
-        }
-    }  
+    for (int i = 0; i < this->positions.size(); i++)
+    {
+        this->positions[i].x = this->translations[3 * i];
+        this->positions[i].y = this->translations[3 * i + 1];
+        this->positions[i].z = this->translations[3 * i + 2];
+    }
 
     this->vertices_array = VAO();
     this->vertices_array.Bind();
     this->vertices_buffer = VBO(&this->vertices, this->vertices.size() * sizeof(float));
 
-    // std::cout << "VERTICES" << std::endl;
-    // for (float p : this->vertices)
-    // {
-    //     std::cout << p << " ";
-    // }
-    // std::cout << std::endl;
+    this->normals_array = VAO();
+    this->normals_array.Bind();
+    this->normals_buffer = VBO(&this->normals, this->normals.size() * sizeof(float));
 
     this->translations_array = VAO();
     this->translations_array.Bind();
     this->translations_buffer = VBO(&this->translations, this->translations.size() * sizeof(float));
 
-    this->rotations_array = VAO();
-    this->rotations_array.Bind();
-    this->rotations_buffer = VBO(&this->rotations, this->rotations.size() * sizeof(float));
-
-    // std::cout << "\nTRANSLATIONS" << std::endl;
-    // for (float t : this->translations)
-    // {
-    //     std::cout << t << " ";
-    // }
-    // std::cout << std::endl;
-
     this->shader = Shader(vertex_shader_filename, fragment_shader_filename);
-    
+
     this->vertices_array.link_vbo(this->vertices_buffer, 0, 3);
-    this->translations_array.link_instance_vbo(this->translations_buffer, 1, 3, 1);
-    this->rotations_array.link_instance_vbo(this->rotations_buffer, 2, 3, 1);
+    this->normals_array.link_vbo(this->normals_buffer, 1, 3);
+    this->translations_array.link_instance_vbo(this->translations_buffer, 2, 3, 1);
+
+    this->material.ambient = material.ambient;
+    this->material.diffuse = material.diffuse;
+    this->material.specular = material.specular;
+    this->material.shininess = material.shininess;
+
+    // this->position = glm::vec3(0.0, 0.0, 0.0);
 }
 
 void Enemies::Bind()
 {
     this->vertices_array.Bind();
     this->translations_array.Bind();
-    this->rotations_array.Bind();
 }
 
 void Enemies::Unbind()
 {
     this->vertices_array.Unbind();
     this->translations_array.Unbind();
-    this->rotations_array.Unbind();
 }
 
 void Enemies::Draw()
@@ -172,6 +101,14 @@ void Enemies::DrawInstanced(GLsizei primcount)
     glDrawArraysInstanced(GL_TRIANGLES, 0, vertices.size() / 3, primcount);
 }
 
+void Enemies::loadUniforms()
+{   
+    glUniform3fv(glGetUniformLocation(shader.id, "material.ambient"),  1, glm::value_ptr(material.ambient));
+    glUniform3fv(glGetUniformLocation(shader.id, "material.diffuse"),  1, glm::value_ptr(material.diffuse));
+    glUniform3fv(glGetUniformLocation(shader.id, "material.specular"), 1, glm::value_ptr(material.specular));
+    glUniform1f (glGetUniformLocation(shader.id, "material.shininess"),   material.shininess);
+}
+
 void Enemies::loadData(const char* filename, std::vector<float> &data, float scale)
 {
     std::ifstream in(filename);
@@ -191,11 +128,118 @@ void Enemies::loadData(const char* filename, std::vector<float> &data, float sca
             value += c;
         }
     }
+}
 
-    // for(float value : data)
-    // {
-    //     std::cout << value << " ";
-    // }
-    // std::cout << std::endl;
+bool Enemies::loadFromObjectFile(const char* filename)
+{
+    std::ifstream f(filename);
+    if (!f.is_open())
+        return false;
+    
+    std::vector<vec3d> temp_vertices;
+    std::vector<vec3d> temp_normals;
+    vec3d vn = {0.0, 0.0, 0.0};
+    vec3d v = {0.0, 0.0, 0.0};
 
+    while(!f.eof())
+    {
+        char line[128];
+        f.getline(line, 128);
+
+        std::stringstream s;
+        s << line;
+        
+
+        char junk;
+
+        if (line[0] == 'v')
+        {
+            if (line[1] == 'n')
+            {
+                char delimiter[] = " ";
+                std::vector<std::string> tokens;
+
+                char* token = strtok(line, delimiter);
+                while (token)
+                {
+                    tokens.push_back(std::string(token));
+                    token = strtok(nullptr, delimiter);
+                }
+
+                vn.x = stof(tokens[1]);
+                vn.y = stof(tokens[2]);
+                vn.z = stof(tokens[3]);
+
+                temp_normals.push_back(vn);
+            }
+            else
+            {
+                char delimiter[] = " ";
+                std::vector<std::string> tokens;
+
+                char* token = strtok(line, delimiter);
+                while (token)
+                {
+                    tokens.push_back(std::string(token));
+                    token = strtok(nullptr, delimiter);
+                }
+
+                v.x = stof(tokens[1]);
+                v.y = stof(tokens[2]);
+                v.z = stof(tokens[3]);
+
+                temp_vertices.push_back(v);
+            }
+        }
+
+        if (line[0] == 'f')
+        {
+            int f[3];
+            int n[3];
+
+            std::string parts[3];
+
+            s >> junk >> parts[0] >> parts[1] >> parts[2];
+            
+            for (int i = 0; i < 3; i++)
+            {
+                replace(parts[i], "//", " ");
+
+                char delimiter[] = " ";
+                std::vector<std::string> numbers;
+
+                char* token = strtok(const_cast<char*>(parts[i].c_str()), delimiter);
+                while (token != nullptr)
+                {
+                    numbers.push_back(std::string(token));
+                    token = strtok(nullptr, delimiter);
+                }
+
+                f[i] = stoi(numbers[0]);
+                n[i] = stoi(numbers[1]);
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                this->vertices.push_back(temp_vertices[f[i] - 1].x);
+                this->vertices.push_back(temp_vertices[f[i] - 1].y);
+                this->vertices.push_back(temp_vertices[f[i] - 1].z);
+
+                this->normals.push_back(temp_normals[n[i] - 1].x);
+                this->normals.push_back(temp_normals[n[i] - 1].y);
+                this->normals.push_back(temp_normals[n[i] - 1].z);
+            }
+
+        }
+    }
+
+    return true;
+}
+
+bool Enemies::replace(std::string& str, const std::string& from, const std::string& to) {
+    size_t start_pos = str.find(from);
+    if(start_pos == std::string::npos)
+        return false;
+    str.replace(start_pos, from.length(), to);
+    return true;
 }

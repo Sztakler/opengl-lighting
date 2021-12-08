@@ -46,6 +46,32 @@ Drawable::Drawable(const char* obj_data_filename, const char* vertex_shader_file
 
 }
 
+Drawable::Drawable(const char* obj_data_filename, const char* vertex_shader_filename,
+               const char* fragment_shader_filename, Material material)
+{
+    loadFromObjectFile(obj_data_filename);
+
+    this->vertices_array = VAO();
+    this->vertices_array.Bind();
+    this->vertices_buffer = VBO(&this->vertices, this->vertices.size() * sizeof(float));
+
+    this->normals_array = VAO();
+    this->normals_array.Bind();
+    this->normals_buffer = VBO(&this->normals, this->normals.size() * sizeof(float));
+
+    this->shader = Shader(vertex_shader_filename, fragment_shader_filename);
+
+    this->vertices_array.link_vbo(this->vertices_buffer, 0, 3);
+    this->normals_array.link_vbo(this->normals_buffer, 1, 3);
+
+    this->material.ambient = material.ambient;
+    this->material.diffuse = material.diffuse;
+    this->material.specular = material.specular;
+    this->material.shininess = material.shininess;
+
+    this->position = glm::vec3(0.0, 0.0, 0.0);
+}
+
 void Drawable::Bind()
 {
     this->vertices_array.Bind();
@@ -69,13 +95,15 @@ void Drawable::Draw(glm::mat4* model, glm::mat4* view, glm::mat4* projection, DR
     glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(*view));
     glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(*projection));
 
-    // if (transparent)
-    // {
-    //     sortTriangles(camera_position);
-    //     this->vertices_buffer.Update(&this->vertices, this->vertices.size() * sizeof(float));
-    //     this->normals_buffer.Update(&this->normals, this->normals.size() * sizeof(float));
+    // loadUniforms();
+
+    if (transparent)
+    {
+        sortTriangles(camera_position);
+        // this->vertices_buffer.Update(&this->vertices, this->vertices.size() * sizeof(float));
+        // this->normals_buffer.Update(&this->normals, this->normals.size() * sizeof(float));
     
-    // }
+    }
 
     switch (drawing_mode)
     {
@@ -90,6 +118,15 @@ void Drawable::Draw(glm::mat4* model, glm::mat4* view, glm::mat4* projection, DR
             glDrawArrays(GL_TRIANGLES, 0,  vertices.size() / 3);
     }
     
+}
+
+void Drawable::loadUniforms()
+{   
+    glUniform3fv(glGetUniformLocation(shader.id, "centerPosition"),    1, glm::value_ptr(position));
+    glUniform3fv(glGetUniformLocation(shader.id, "material.ambient"),  1, glm::value_ptr(material.ambient));
+    glUniform3fv(glGetUniformLocation(shader.id, "material.diffuse"),  1, glm::value_ptr(material.diffuse));
+    glUniform3fv(glGetUniformLocation(shader.id, "material.specular"), 1, glm::value_ptr(material.specular));
+    glUniform1f (glGetUniformLocation(shader.id, "material.shininess"),   material.shininess);
 }
 
 void Drawable::loadData(const char* filename, std::vector<float> &data, float scale)
@@ -200,9 +237,6 @@ bool Drawable::loadFromObjectFile(const char* filename)
 
                 f[i] = stoi(numbers[0]);
                 n[i] = stoi(numbers[1]);
-
-                // std::cout << "v " << temp_vertices[f[i] - 1].x << " " << temp_vertices[f[i] - 1].y << " " << temp_vertices[f[i] - 1].z << "\n";
-                // std::cout << "n " << temp_normals[n[i] - 1].x << " " << temp_normals[n[i] - 1].y << " " << temp_normals[n[i] - 1].z << "\n";
             }
 
             for (int i = 0; i < 3; i++)
@@ -214,25 +248,10 @@ bool Drawable::loadFromObjectFile(const char* filename)
                 this->normals.push_back(temp_normals[n[i] - 1].x);
                 this->normals.push_back(temp_normals[n[i] - 1].y);
                 this->normals.push_back(temp_normals[n[i] - 1].z);
-
-                // std::cout << "v " << temp_vertices[f[i] - 1].x << " " << temp_vertices[f[i] - 1].y << " " << temp_vertices[f[i] - 1].z << "\n";
-                // std::cout << "n " << temp_normals[n[i] - 1].x << " " << temp_normals[n[i] - 1].y << " " << temp_normals[n[i] - 1].z << "\n";
             }
 
         }
     }
-
-std::cout << "vertices\n";
-        for (int i = 0; i < this->vertices.size(); i += 3)
-        {
-            std::cout << this->vertices[i] << " " << this->vertices[i + 1] << " " << this->vertices[i + 2] << "\n"; 
-        }
-
-        std::cout << "normals\n";
-        for (int i = 0; i < this->normals.size(); i += 3)
-        {
-            std::cout << this->normals[i] << " " << this->normals[i + 1] << " " << this->normals[i + 2] << "\n"; 
-        }
     return true;
 }
 
@@ -265,12 +284,7 @@ void Drawable::sortTriangles(glm::vec3 camera_position)
             return glm::length(vert_a.first - camera_position) < glm::length(vert_b.first - camera_position);
           });
 
-    // std::cout <<  this->vertices.size() << " " << vert_norm_vector.size() << std::endl;
-    // std::cout << "(" << p.first.x << ", " << p.first.y << ", " << p.first.z << ") (";
-
-    std::cout << this->vertices[0] << " " << this->vertices[1] << " " << this->vertices[2] << std::endl;
-    std::cout << this->normals[0] << " " << this->normals[1] << " " << this->normals[2] << std::endl;
-
+   
     int j = 0;
     for (int i = 0; i < vert_norm_vector.size(); i++)
     {

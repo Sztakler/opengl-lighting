@@ -50,6 +50,14 @@ typedef struct AABB
     float Bmaxz;
 } AABB;
 
+typedef struct Material
+{
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+    float shininess;
+} Material;
+
 enum DRAWING_MODE
 {
 	TRIANGLES,

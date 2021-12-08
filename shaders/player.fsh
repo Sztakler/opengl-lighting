@@ -84,7 +84,8 @@ vec3 CalcDirLight(DirLight light, Material material, vec3 normal, vec3 fragPos, 
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
 
     // /* Beer-Lambert Law https://graphics.fandom.com/wiki/Beer-Lambert_law */
-    float beer_intensity = pow(10.0, -1.0 * 0.04 * (23.0 - fragPos.y));
+    float depth = 23.0 - fragPos.y;
+    float beer_intensity = pow(10.0, -1.0 * 0.0048 * depth * depth);
 
     // combine results
     vec3 ambient = light.ambient * material.diffuse;
@@ -136,7 +137,8 @@ vec3 calculateSpotLight(SpotLight light, Material material, vec3 normal, vec3 fr
     vec3 specular = light.specular * spec * material.specular;
 
     // /* Beer-Lambert Law https://graphics.fandom.com/wiki/Beer-Lambert_law */
-    float beer_intensity = pow(10.0, -1.0 * 0.03 * distance * 2);
+    float depth = 23.0 - fragPos.y;
+    float beer_intensity = pow(10.0, -1.0 * 0.004 * distance * depth );
 
     // ambient *= attenuation * intensity;
     // diffuse *= attenuation * intensity;

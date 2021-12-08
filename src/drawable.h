@@ -18,10 +18,10 @@ class Drawable
         Shader shader;
 
         std::vector<float> vertices;
-        // std::vector<glm::vec3> vertices;
         std::vector<float> normals;
-        // std::vector<glm::vec3> normals;
         std::vector<float> data;
+
+        Material material;        
 
         glm::vec3 position;
         float speed;
@@ -31,16 +31,19 @@ class Drawable
                const char* vertex_shader_filename, const char* fragment_shader_filename);
         Drawable(const char* obj_data_filename, const char* vertex_shader_filename,
                const char* fragment_shader_filename);
+        Drawable(const char* obj_data_filename, const char* vertex_shader_filename,
+               const char* fragment_shader_filename, Material material);    
     public:
         void Bind();
         void Unbind();
         void Draw();
         void Draw(glm::mat4* model, glm::mat4* view, glm::mat4* projection, DRAWING_MODE drawing_mode, bool transparent, glm::vec3 camera_position);
+        void loadUniforms(); // TODO
 
     private:
+        bool replace(std::string& str, const std::string& from, const std::string& to);
         void loadData(const char* filename, std::vector<float> &data, float scale);
         bool loadFromObjectFile(const char* filename);
-        bool replace(std::string& str, const std::string& from, const std::string& to);
         void sortTriangles(glm::vec3 camera_position);
 };
 
