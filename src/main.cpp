@@ -388,9 +388,11 @@ int main(int argc, char* argv[])
 		// }
 
 		// Collision detection
-	
+
 		for (glm::vec3 bubble_position : bubbles.positions)
 		{
+			if (glm::length(bubble_position - player_camera.position) < 2.0)
+				player_camera.undoMove(delta_time);
 			printf("distance: %f\n", glm::length(bubble_position - player_camera.position));
 		}
 
