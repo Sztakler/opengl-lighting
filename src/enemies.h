@@ -10,7 +10,8 @@ class Enemies
         std::vector<float> normals;
         std::vector<float> translations;
         std::vector<float> velocities;
-        std::vector<float> colors;    
+        std::vector<float> colors;  
+        std::vector<glm::vec3> colors_vec;  
 
         float yOffset;
         float velocity;
@@ -45,7 +46,7 @@ class Enemies
         void Bind();
         void Unbind();
         void Draw();
-        void DrawInstanced(GLsizei primcount, glm::mat4 *model, glm::mat4 *view, glm::mat4 *projection, DRAWING_MODE drawing_mode);
+        void DrawInstanced(GLsizei primcount, glm::mat4 *model, glm::mat4 *view, glm::mat4 *projection, DRAWING_MODE drawing_mode, bool transparent, glm::vec3 camera_position);
         void DrawInstanced(GLsizei primcount);
         void loadUniforms();
         
@@ -53,4 +54,5 @@ class Enemies
         void loadData(const char* filename, std::vector<float> &data, float scale);
         bool loadFromObjectFile(const char* filename);
         bool replace(std::string& str, const std::string& from, const std::string& to);
+        void sortPositions(glm::vec3 player_position);
 };

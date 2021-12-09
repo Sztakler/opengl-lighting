@@ -56,7 +56,7 @@ DRAWING_MODE drawing_mode = TRIANGLES;
 
 Camera player_camera(glm::vec3(5.0f, 5.0f, 5.0f));
 Camera static_camera(glm::vec3(-20.0f, 10.0f, 20.0f));
-Camera *main_camera = &player_camera;
+Camera *current_camera = &player_camera;
 CAMERA camera_index = PLAYER_CAMERA;
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
@@ -86,7 +86,7 @@ void mouse_callback(GLFWwindow *window, double x_pos, double y_pos)
 
 void scroll_callback(GLFWwindow *window, double x_offset, double y_offset)
 {
-	player_camera.processMouseScroll(y_offset);
+	current_camera->processMouseScroll(y_offset);
 }
 
 void processInput(GLFWwindow *window)
@@ -131,15 +131,15 @@ void processInput(GLFWwindow *window)
 		switch (camera_index)
 		{
 		case PLAYER_CAMERA:
-			main_camera = &static_camera;
+			current_camera = &static_camera;
 			camera_index = STATIC_CAMERA;
 			break;
 		case STATIC_CAMERA:
-			main_camera = &player_camera;
+			current_camera = &player_camera;
 			camera_index = PLAYER_CAMERA;
 			break;
 		default:
-			main_camera = &static_camera;
+			current_camera = &static_camera;
 			camera_index = STATIC_CAMERA;
 			break;
 		}
@@ -322,11 +322,11 @@ int main(int argc, char *argv[])
 		glClearColor(0.07f, 0.07f, 0.07f, 1.0f);
 
 		if (camera_index == PLAYER_CAMERA)
-			view = main_camera->getViewMatrix();
+			view = current_camera->getViewMatrix();
 		if (camera_index == STATIC_CAMERA)
 			view = glm::lookAt(static_camera.position, player_camera.position, static_camera.up);
 
-		projection = glm::perspective(glm::radians(main_camera->zoom), (float)(SCR_WIDTH) / (float)SCR_HEIGHT, 0.01f, 100.0f);
+		projection = glm::perspective(glm::radians(current_camera->zoom), (float)(SCR_WIDTH) / (float)SCR_HEIGHT, 0.01f, 100.0f);
 
 		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
@@ -342,7 +342,7 @@ int main(int argc, char *argv[])
 		// // point lights
 		loadPointLightsUniforms(glowingBubbles, player);
 		// spotlight
-loadSpotLightsUniforms(spotLight, player);
+		loadSpotLightsUniforms(spotLight, player);
 
 		if (camera_index != PLAYER_CAMERA)
 		{
@@ -380,6 +380,19 @@ loadSpotLightsUniforms(spotLight, player);
 		plane.Draw(&model, &view, &projection, TRIANGLES, false, player_camera.position);
 		plane.Unbind();
 
+		for (auto point_light : glowingBubbles)
+		{
+			point_light->shader.Activate();
+			point_light->Bind();
+
+			glUniform3fv(glGetUniformLocation(point_light->shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));
+
+			point_light->loadUniforms();
+
+			point_light->Draw(&model, &view, &projection, TRIANGLES, false, player_camera.position);
+			point_light->Unbind();
+		}
+
 		bubbles.shader.Activate();
 		bubbles.Bind();
 		glUniform3fv(glGetUniformLocation(bubbles.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));
@@ -393,26 +406,11 @@ loadSpotLightsUniforms(spotLight, player);
 		// glDisable(GL_DEPTH_TEST);
 		glDepthMask(GL_FALSE);
 		glEnable(GL_BLEND);
-		bubbles.DrawInstanced(n_bubbles, &model, &view, &projection, drawing_mode);
+		bubbles.DrawInstanced(n_bubbles, &model, &view, &projection, drawing_mode, true, current_camera->position);
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
 		// glEnable(GL_DEPTH_TEST);
 		bubbles.Unbind();
-
-
-		
-		for (auto point_light : glowingBubbles)
-		{
-			point_light->shader.Activate();
-			point_light->Bind();
-
-			glUniform3fv(glGetUniformLocation(point_light->shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));
-
-			point_light->loadUniforms();
-
-			point_light->Draw(&model, &view, &projection, TRIANGLES, false, player_camera.position);
-			point_light->Unbind();
-		}
 
 		for (int i = 0; i < bubbles.positions.size(); i++)
 		{
@@ -606,43 +604,43 @@ void loadPointLightsUniforms(std::vector<DrawableLight *> lights, Drawable entit
 void loadDirectionLightsUniforms(DirLight directionLight, Drawable entity)
 {
 	glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.direction"), 1, glm::value_ptr(directionLight.direction));
-		glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.ambient"), 1, glm::value_ptr(directionLight.ambient));
-		glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.diffuse"), 1, glm::value_ptr(directionLight.diffuse));
-		glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.specular"), 1, glm::value_ptr(directionLight.specular));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.ambient"), 1, glm::value_ptr(directionLight.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.diffuse"), 1, glm::value_ptr(directionLight.diffuse));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.specular"), 1, glm::value_ptr(directionLight.specular));
 }
 
 void loadDirectionLightsUniforms(DirLight directionLight, Enemies entity)
 {
 	glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.direction"), 1, glm::value_ptr(directionLight.direction));
-		glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.ambient"), 1, glm::value_ptr(directionLight.ambient));
-		glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.diffuse"), 1, glm::value_ptr(directionLight.diffuse));
-		glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.specular"), 1, glm::value_ptr(directionLight.specular));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.ambient"), 1, glm::value_ptr(directionLight.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.diffuse"), 1, glm::value_ptr(directionLight.diffuse));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.specular"), 1, glm::value_ptr(directionLight.specular));
 }
 
 void loadSpotLightsUniforms(SpotLight spotLight, Drawable entity)
 {
 	glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.position"), 1, glm::value_ptr(player_camera.position));
-		glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.direction"), 1, glm::value_ptr(player_camera.front));
-		glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.ambient"), 1, glm::value_ptr(spotLight.ambient));
-		glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.diffuse"), 1, glm::value_ptr(spotLight.ambient));
-		glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.specular"), 1, glm::value_ptr(spotLight.ambient));
-		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.constant"), spotLight.constant);
-		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.linear"), spotLight.linear);
-		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.quadratic"), spotLight.quadratic);
-		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.cutOff"), glm::cos(glm::radians(spotLight.cutOff)));
-		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.outCutOff"), glm::cos(glm::radians(spotLight.outCutOff)));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.direction"), 1, glm::value_ptr(player_camera.front));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.ambient"), 1, glm::value_ptr(spotLight.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.diffuse"), 1, glm::value_ptr(spotLight.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.specular"), 1, glm::value_ptr(spotLight.ambient));
+	glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.constant"), spotLight.constant);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.linear"), spotLight.linear);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.quadratic"), spotLight.quadratic);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.cutOff"), glm::cos(glm::radians(spotLight.cutOff)));
+	glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.outCutOff"), glm::cos(glm::radians(spotLight.outCutOff)));
 }
 
 void loadSpotLightsUniforms(SpotLight spotLight, Enemies entity)
 {
-glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.position"), 1, glm::value_ptr(player_camera.position));
-		glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.direction"), 1, glm::value_ptr(player_camera.front));
-		glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.ambient"), 1, glm::value_ptr(spotLight.ambient));
-		glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.diffuse"), 1, glm::value_ptr(spotLight.ambient));
-		glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.specular"), 1, glm::value_ptr(spotLight.ambient));
-		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.constant"), spotLight.constant);
-		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.linear"), spotLight.linear);
-		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.quadratic"), spotLight.quadratic);
-		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.cutOff"), glm::cos(glm::radians(spotLight.cutOff)));
-		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.outCutOff"), glm::cos(glm::radians(spotLight.outCutOff)));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.position"), 1, glm::value_ptr(player_camera.position));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.direction"), 1, glm::value_ptr(player_camera.front));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.ambient"), 1, glm::value_ptr(spotLight.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.diffuse"), 1, glm::value_ptr(spotLight.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.specular"), 1, glm::value_ptr(spotLight.ambient));
+	glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.constant"), spotLight.constant);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.linear"), spotLight.linear);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.quadratic"), spotLight.quadratic);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.cutOff"), glm::cos(glm::radians(spotLight.cutOff)));
+	glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.outCutOff"), glm::cos(glm::radians(spotLight.outCutOff)));
 }

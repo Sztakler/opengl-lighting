@@ -21,7 +21,7 @@ Enemies::Enemies(const char* obj_data_filename,
     }
 
 
-    printf("COLORS:\n");
+    // printf("COLORS:\n");
     for (int i = 0; i < n_enemies; i++)
     {
         this->velocities.push_back(rand() % 100 / 1000);
@@ -35,7 +35,9 @@ Enemies::Enemies(const char* obj_data_filename,
         this->colors.push_back(color.y);
         this->colors.push_back(color.z);
 
-        printf("%f, %f, %f\n", color.x, color.y, color.z);
+        this->colors_vec.push_back(color);
+
+        // printf("%f, %f, %f\n", color.x, color.y, color.z);
     }
 
     this->vertices_array = VAO();
@@ -93,10 +95,14 @@ void Enemies::Draw()
     glDrawArrays(GL_TRIANGLES, 0,  vertices.size() / 3);
 }
 
-void Enemies::DrawInstanced(GLsizei primcount, glm::mat4* model, glm::mat4* view, glm::mat4* projection, DRAWING_MODE drawing_mode)
-{
+void Enemies::DrawInstanced(GLsizei primcount, glm::mat4* model, glm::mat4* view, glm::mat4* projection, DRAWING_MODE drawing_mode, bool transparent, glm::vec3 camera_position)
+{   
+    if (transparent)
+    {
+        sortPositions(camera_position);
+        this->colors_buffer.Update(&this->colors);
+    }
     this->translations_buffer.Update(&this->translations);
-
 
     glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(*model));
     glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(*view));
@@ -130,6 +136,38 @@ void Enemies::loadUniforms()
     glUniform3fv(glGetUniformLocation(shader.id, "material.diffuse"),  1, glm::value_ptr(material.diffuse));
     glUniform3fv(glGetUniformLocation(shader.id, "material.specular"), 1, glm::value_ptr(material.specular));
     glUniform1f (glGetUniformLocation(shader.id, "material.shininess"),   material.shininess);
+}
+
+void Enemies::sortPositions(glm::vec3 camera_position)
+{
+    std::vector<std::pair<glm::vec3, glm::vec3>> position_color_vector;
+    for (int i = 0; i < positions.size(); i++)
+    {
+        std::pair<glm::vec3, glm::vec3> p(positions[i], colors_vec[i]);
+        position_color_vector.push_back(p);
+    }
+
+    std::sort(std::begin(position_color_vector), std::end(position_color_vector),
+          [camera_position](const std::pair<glm::vec3, glm::vec3> &a, const std::pair<glm::vec3, glm::vec3> &b) {
+            return glm::length(a.first - camera_position) > glm::length(b.first - camera_position);
+          });
+
+    for (int i = 0; i < position_color_vector.size(); i++)
+    {
+        this->translations[3 * i]     = position_color_vector[i].first.x;
+        this->translations[3 * i + 1] = position_color_vector[i].first.y;
+        this->translations[3 * i + 2] = position_color_vector[i].first.z;
+
+        // printf("%d %f, %f, %f\n", i, position_color_vector[i].first.x, position_color_vector[i].first.y, position_color_vector[i].first.z);
+
+        this->positions[i]            = position_color_vector[i].first;
+
+        this->colors[3 * i]           = position_color_vector[i].second.x;
+        this->colors[3 * i + 1]       = position_color_vector[i].second.y;
+        this->colors[3 * i + 2]       = position_color_vector[i].second.z;
+
+        this->colors_vec[i]           = position_color_vector[i].second;
+    }
 }
 
 void Enemies::loadData(const char* filename, std::vector<float> &data, float scale)
