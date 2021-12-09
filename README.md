@@ -2,4 +2,4 @@
 Project made for my university Basics of Computer Graphics course
 
 
-![](https://imgur.com/N41wf7W)
+![](https://cdn.discordapp.com/attachments/702987071849234636/918458349043986432/unknown.png)
