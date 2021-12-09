@@ -58,10 +58,52 @@ typedef struct Material
     float shininess;
 } Material;
 
+struct DirLight {
+    glm::vec3 direction;
+	
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+};
+
+struct PointLight {
+    glm::vec3 position;
+    
+    float constant;
+    float linear;
+    float quadratic;
+	
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+};
+
+struct SpotLight {
+    glm::vec3 position;
+    glm::vec3 direction;
+  
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+
+    float constant;
+    float linear;
+    float quadratic;
+
+    float cutOff;
+    float outCutOff;
+
+};
 enum DRAWING_MODE
 {
 	TRIANGLES,
 	WIREFRAME
+};
+
+enum CAMERA
+{
+    PLAYER_CAMERA,
+    STATIC_CAMERA
 };
 
 #endif

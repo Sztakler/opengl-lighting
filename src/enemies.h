@@ -9,21 +9,29 @@ class Enemies
         std::vector<float> vertices;
         std::vector<float> normals;
         std::vector<float> translations;
+        std::vector<float> velocities;
+        std::vector<float> colors;    
+
+        float yOffset;
+        float velocity;
 
         VAO vertices_array;
         VAO normals_array;
         VAO translations_array;
+        VAO colors_array;
+        // VAO velocities_array;
 
-        Material material;        
+        Material material;    
 
         VBO vertices_buffer;
         VBO normals_buffer;
         VBO translations_buffer;
-        
+        VBO colors_buffer;
+        // VBO velocities_buffer;
+
         Shader shader;
 
         std::vector<glm::vec3> positions;
-        std::vector<float> velocities;
 
     public:
         Enemies(const char* vertices_data_filename, const char* colors_data_filename,

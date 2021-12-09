@@ -14,7 +14,7 @@ OBJ = $(OBJ_DIR)/main.o \
 	$(OBJ_DIR)/sphere.o \
 	$(OBJ_DIR)/enemies.o \
 	$(OBJ_DIR)/box.o \
-	$(OBJ_DIR)/light.o \
+	$(OBJ_DIR)/drawable_light.o \
 
 
 OBJ_PATH = ./$(OBJ_DIR)/

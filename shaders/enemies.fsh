@@ -6,6 +6,7 @@ out vec4 FragColor;
 in vec3 objectColor;
 in vec3 fragmentPosition;  
 in vec3 Normal;  
+in vec3 Color;
   
 uniform vec3 lightColor;
 uniform vec3 lightPosition;
@@ -62,16 +63,26 @@ uniform Material material;
 uniform SpotLight spotlight;
 uniform DirLight directionlight;
 
+#define NR_POINT_LIGHTS 6
+uniform PointLight pointLights[NR_POINT_LIGHTS];
+
 void main()
 {
+    Material objColor = Material(Color, Color * 3, vec3(1.0, 1.0, 1.0), 36.0);
+
     vec3 norm = normalize(Normal);
     vec3 viewDirection = normalize(viewerPosition - fragmentPosition);
     vec3 lightDirection = normalize(spotlight.position - fragmentPosition);
 
-    vec3 result = CalcDirLight(directionlight, material, norm, fragmentPosition, -viewDirection);
-    result += calculateSpotLight(spotlight, material, norm, fragmentPosition, -viewDirection);
+    vec3 result = CalcDirLight(directionlight, objColor, norm, fragmentPosition, -viewDirection);
+    result += calculateSpotLight(spotlight, objColor, norm, fragmentPosition, -viewDirection);
 
-    FragColor = vec4(result, 1.0);
+     for (int i = 0; i < NR_POINT_LIGHTS; i++)
+    {
+        result += CalcPointLight(pointLights[i], material, norm, fragmentPosition, viewDirection);
+    }
+
+    FragColor = vec4(result, 0.5);
 } 
 
 vec3 CalcDirLight(DirLight light, Material material, vec3 normal, vec3 fragPos, vec3 viewDir)
@@ -105,6 +116,10 @@ vec3 CalcPointLight(PointLight light, Material material, vec3 normal, vec3 fragP
     // attenuation
     float distance = length(light.position - fragPos);
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
+
+    float depth = 23.0 - fragPos.y;
+    float beer_intensity = pow(10.0, -1.0 * 0.004 * distance * depth );
+
     // combine results
     vec3 ambient = light.ambient * material.diffuse;
     vec3 diffuse = light.diffuse * diff * material.diffuse;
@@ -112,7 +127,7 @@ vec3 CalcPointLight(PointLight light, Material material, vec3 normal, vec3 fragP
     ambient *= attenuation;
     diffuse *= attenuation;
     specular *= attenuation;
-    return (ambient + diffuse + specular);
+    return (ambient + diffuse + specular) + vec3(0.0314, 0.1686, 0.4275) * beer_intensity;
 }
 
 vec3 calculateSpotLight(SpotLight light, Material material, vec3 normal, vec3 fragPos, vec3 viewDir)
@@ -139,10 +154,10 @@ vec3 calculateSpotLight(SpotLight light, Material material, vec3 normal, vec3 fr
     // /* Beer-Lambert Law https://graphics.fandom.com/wiki/Beer-Lambert_law */
     float depth = 23.0 - fragPos.y;
     float beer_intensity = pow(10.0, -1.0 * 0.004 * distance * depth );
-
+// vec3(0.8941, 0.7412, 0.9647)
     // ambient *= attenuation * intensity;
     // diffuse *= attenuation * intensity;
     // specular *= attenuation * intensity;
-    return (ambient + diffuse + specular + vec3(0.0314, 0.1686, 0.4275)) * beer_intensity * intensity * 2 + vec3(0.0118, 0.051, 0.1216);
+    return ( (ambient + diffuse + specular) * attenuation * 5 + vec3(0.0314, 0.1686, 0.4275) * beer_intensity ) * intensity;
     // return vec3(0.7804, 0.2784, 0.2784);
 }

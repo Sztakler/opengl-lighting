@@ -17,19 +17,25 @@ Enemies::Enemies(const char* obj_data_filename,
     {
         this->translations.push_back(rand() % 2000 / 100.0);
         this->translations.push_back(rand() % 2000 / 100.0);
-        this->translations.push_back(rand() % 4000 / 100.0);
-        
-        this->velocities.push_back(rand() % 100 / 1000);
+        this->translations.push_back(rand() % 3800 / 100.0 + 5.0);
     }
 
 
-
+    printf("COLORS:\n");
     for (int i = 0; i < n_enemies; i++)
     {
+        this->velocities.push_back(rand() % 100 / 1000);
         this->positions.push_back(glm::vec3( this->translations[3 * i],
                                              this->translations[3 * i + 1], 
                                              this->translations[3 * i + 2] ));
-        printf("%f, %f, %f\n", this->positions.back().x, this->positions.back().y, this->positions.back().z);
+                                             
+        glm::vec3 color = glm::vec3(rand() % 1000 / 1000.0, rand() % 1000 / 1000.0, rand() % 1000 / 1000.0);
+
+        this->colors.push_back(color.x);
+        this->colors.push_back(color.y);
+        this->colors.push_back(color.z);
+
+        printf("%f, %f, %f\n", color.x, color.y, color.z);
     }
 
     this->vertices_array = VAO();
@@ -44,30 +50,42 @@ Enemies::Enemies(const char* obj_data_filename,
     this->translations_array.Bind();
     this->translations_buffer = VBO(&this->translations, this->translations.size() * sizeof(float));
 
+    this->colors_array = VAO();
+    this->colors_array.Bind();
+    this->colors_buffer = VBO(&this->colors, this->colors.size() * sizeof(float));
+
     this->shader = Shader(vertex_shader_filename, fragment_shader_filename);
 
     this->vertices_array.link_vbo(this->vertices_buffer, 0, 3);
     this->normals_array.link_vbo(this->normals_buffer, 1, 3);
     this->translations_array.link_instance_vbo(this->translations_buffer, 2, 3, 1);
+    this->colors_array.link_instance_vbo(this->colors_buffer, 3, 3, 1);
+    // this->velocities_array.link_instance_vbo(this->velocities_buffer, 3, 1, 1);
 
     this->material.ambient = material.ambient;
     this->material.diffuse = material.diffuse;
     this->material.specular = material.specular;
     this->material.shininess = material.shininess;
 
+    this->yOffset = 0.0;
+    this->velocity = 0.01;
     // this->position = glm::vec3(0.0, 0.0, 0.0);
 }
 
 void Enemies::Bind()
 {
     this->vertices_array.Bind();
+    this->normals_array.Bind();
     this->translations_array.Bind();
+    this->colors_array.Bind();
 }
 
 void Enemies::Unbind()
 {
     this->vertices_array.Unbind();
+    this->normals_array.Unbind();
     this->translations_array.Unbind();
+    this->colors_array.Unbind();
 }
 
 void Enemies::Draw()
@@ -77,6 +95,9 @@ void Enemies::Draw()
 
 void Enemies::DrawInstanced(GLsizei primcount, glm::mat4* model, glm::mat4* view, glm::mat4* projection, DRAWING_MODE drawing_mode)
 {
+    this->translations_buffer.Update(&this->translations);
+
+
     glUniformMatrix4fv(0, 1, GL_FALSE, glm::value_ptr(*model));
     glUniformMatrix4fv(1, 1, GL_FALSE, glm::value_ptr(*view));
     glUniformMatrix4fv(2, 1, GL_FALSE, glm::value_ptr(*projection));
@@ -104,6 +125,7 @@ void Enemies::DrawInstanced(GLsizei primcount)
 
 void Enemies::loadUniforms()
 {   
+    glUniform1f(glGetUniformLocation(shader.id, "yOffset"), this->yOffset);
     glUniform3fv(glGetUniformLocation(shader.id, "material.ambient"),  1, glm::value_ptr(material.ambient));
     glUniform3fv(glGetUniformLocation(shader.id, "material.diffuse"),  1, glm::value_ptr(material.diffuse));
     glUniform3fv(glGetUniformLocation(shader.id, "material.specular"), 1, glm::value_ptr(material.specular));

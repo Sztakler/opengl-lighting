@@ -1,5 +1,6 @@
-#include<iostream>
-#include<math.h>
+#include <iostream>
+#include <math.h>
+#include <time.h>
 
 #include "includes.h"
 
@@ -12,22 +13,22 @@
 #include "sphere.h"
 #include "enemies.h"
 #include "box.h"
+#include "drawable_light.h"
 
 #include <GLFW/glfw3.h>
 
 // Vertices coordinates
 GLfloat vertices[] =
-{
-	-0.5f, -0.5f, 0.0f,
-	 0.5f, -0.5f, 0.0f,
-	 0.0f,  0.0f, 0.0f
-};
+	{
+		-0.5f, -0.5f, 0.0f,
+		0.5f, -0.5f, 0.0f,
+		0.0f, 0.0f, 0.0f};
 
-void windowResizeHandler(GLFWwindow* window, int width, int height)
+void windowResizeHandler(GLFWwindow *window, int width, int height)
 {
 	const float aspectRatio = (float)width / height;
 	float sx = aspectRatio > 1.0f ? aspectRatio : 1.0f;
-	float sy = aspectRatio > 1.0f ? 1.0f : 1.0f/aspectRatio;
+	float sy = aspectRatio > 1.0f ? 1.0f : 1.0f / aspectRatio;
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -38,6 +39,7 @@ void windowResizeHandler(GLFWwindow* window, int width, int height)
 
 bool first_mouse_movement = true;
 float delta_time;
+float last_change;
 
 int SCR_WIDTH = 1920;
 int SCR_HEIGHT = 1080;
@@ -51,9 +53,11 @@ float pitch = 0.0f;
 float yaw = -90.0f;
 
 DRAWING_MODE drawing_mode = TRIANGLES;
- 
-Camera player_camera(glm::vec3(0.0f, 0.0f, 0.0f));
-Camera static_camera(glm::vec3(-2.0f, 2.0f,  0.0f));
+
+Camera player_camera(glm::vec3(5.0f, 5.0f, 5.0f));
+Camera static_camera(glm::vec3(-20.0f, 10.0f, 20.0f));
+Camera *main_camera = &player_camera;
+CAMERA camera_index = PLAYER_CAMERA;
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
@@ -77,7 +81,7 @@ void mouse_callback(GLFWwindow *window, double x_pos, double y_pos)
 	last_x = x_pos;
 	last_y = y_pos;
 
-	player_camera.processMouseMovement(x_offset, y_offset); 
+	player_camera.processMouseMovement(x_offset, y_offset);
 }
 
 void scroll_callback(GLFWwindow *window, double x_offset, double y_offset)
@@ -103,7 +107,6 @@ void processInput(GLFWwindow *window)
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 		player_camera.processKeyboard(DOWN, delta_time);
 
-
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
 		player_camera.processMouseMovement(0.0, 10.0);
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
@@ -112,27 +115,59 @@ void processInput(GLFWwindow *window)
 		player_camera.processMouseMovement(-10.0, 0.0);
 	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
 		player_camera.processMouseMovement(10.0, 0.0);
-	
 
-	if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
+	if ((glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS) && (last_change > 0.3))
 	{
 		if (drawing_mode == TRIANGLES)
 			drawing_mode = WIREFRAME;
 		else
 			drawing_mode = TRIANGLES;
+
+		last_change = 0.0;
+	}
+
+	if ((glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS) && (last_change > 0.3))
+	{
+		switch (camera_index)
+		{
+		case PLAYER_CAMERA:
+			main_camera = &static_camera;
+			camera_index = STATIC_CAMERA;
+			break;
+		case STATIC_CAMERA:
+			main_camera = &player_camera;
+			camera_index = PLAYER_CAMERA;
+			break;
+		default:
+			main_camera = &static_camera;
+			camera_index = STATIC_CAMERA;
+			break;
+		}
+
+		last_change = 0.0;
+		std::cout << "CURRENT CAMERA = " << camera_index << std::endl;
 	}
 }
 
+void loadPointLightsUniforms(std::vector<DrawableLight *> lights, Drawable entity);
+void loadPointLightsUniforms(std::vector<DrawableLight *> lights, Enemies entity);
+void loadDirectionLightsUniforms(DirLight light, Drawable entity);
+void loadDirectionLightsUniforms(DirLight light, Enemies entity);
+void loadSpotLightsUniforms(SpotLight light, Drawable entity);
+void loadSpotLightsUniforms(SpotLight light, Enemies entity);
 
+int totalScore;
+bool GAME_OVER = false;
+int level = 1;
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
 	int seed;
 	int board_size;
 
 	if (argc < 2)
 	{
-		seed = 1;
+		seed = time(0);
 		board_size = 10;
 	}
 	else if (argc == 2)
@@ -146,8 +181,8 @@ int main(int argc, char* argv[])
 		board_size = atoi(argv[2]);
 	}
 
-    // Initialize GLFW
-   glewExperimental = true; // Needed for core profile
+	// Initialize GLFW
+	glewExperimental = true; // Needed for core profile
 	if (!glfwInit())
 	{
 		fprintf(stderr, "Failed to initialize GLFW\n");
@@ -155,15 +190,14 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
-	glfwWindowHint(GLFW_SAMPLES, 4);               // 4x antialiasing
+	glfwWindowHint(GLFW_SAMPLES, 4);			   // 4x antialiasing
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // We want OpenGL 3.3
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);           // To make MacOS happy; should not be needed
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);		   // To make MacOS happy; should not be needed
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // We don't want the old OpenGl
 
-
-    // Create a GLFWwindow object of 800 by 800 pixels, naming it "YoutubeOpenGL"
-	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "framework", NULL, NULL);
+	// Create a GLFWwindow object of 800 by 800 pixels, naming it "YoutubeOpenGL"
+	GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "framework", NULL, NULL);
 	if (window == NULL)
 	{
 		fprintf(stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n");
@@ -175,8 +209,7 @@ int main(int argc, char* argv[])
 	glfwSetWindowSizeCallback(window, framebuffer_size_callback);
 	glfwMakeContextCurrent(window);
 
-
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);  // Hides mouse cursor and captures it
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Hides mouse cursor and captures it
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 
@@ -184,9 +217,7 @@ int main(int argc, char* argv[])
 	{
 		fprintf(stderr, "Failed to initialize GLEW\n");
 		return -1;
-	}  
-
-
+	}
 
 	// Enable depth test
 	glEnable(GL_DEPTH_TEST);
@@ -197,31 +228,27 @@ int main(int argc, char* argv[])
 	glFrontFace(GL_CCW);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA);
 
+	Drawable aquarium("data/aquarium_smooth.obj", "shaders/aquarium.vsh", "shaders/aquarium.fsh",
+					  Material{glm::vec3(0.0314 / 4, 0.1686 / 4, 0.4275 / 4), glm::vec3(0.0314, 0.1686, 0.4275),
+							   glm::vec3(0.0314, 0.1686, 0.4275), 32.0f});
+	Drawable plane("data/plane.obj", "shaders/aquarium.vsh", "shaders/aquarium.fsh",
+				   Material{glm::vec3(0.0314 / 4, 0.1686 / 4, 0.4275 / 4), glm::vec3(0.0314, 0.1686, 0.4275),
+							glm::vec3(0.5, 0.5, 0.5), 36.0f});
+	Drawable player("data/sphere.obj", "shaders/aquarium.vsh", "shaders/aquarium.fsh",
+					Material{glm::vec3(1.0, 0.0, 0.1333), glm::vec3(1.0, 0.0, 0.1333),
+							 glm::vec3(0.5, 0.5, 0.5), 36.0f});
 
-	Drawable aquarium("data/aquarium_smooth.obj", "shaders/player.vsh", "shaders/player.fsh",
-					Material{glm::vec3(0.0314 / 4, 0.1686 / 4, 0.4275 / 4), glm::vec3(0.0314, 0.1686, 0.4275),
-							 glm::vec3(0.0314, 0.1686, 0.4275), 36.0f});
-	Drawable plane("data/plane.obj", "shaders/player.vsh", "shaders/player.fsh",
-					Material{glm::vec3(0.0, 0.4039, 0.8667), glm::vec3(0.0, 0.4039, 0.8667),
-							 glm::vec3(0.0, 0.4039, 0.8667), 36.0f});
-
-	int n_bubbles = 1;
-	float bubble_base_speed = 0.01;
-	// std::vector<Drawable*> bubbles(n_bubbles);
-	// for (int i = 0; i < n_bubbles; i++)
-	// {
-	// 	bubbles[i] = new Drawable("data/icosphere.obj", "shaders/bubble.vsh", "shaders/bubble.fsh", 
-	// 								   Material{glm::vec3(0.2f, 0.2f, 0.2f), glm::vec3(0.362f, 0.686f, 0.368f),
-	// 								            glm::vec3(0.5f, 0.5f, 0.5f), 32.0f});
-	// 	bubbles[i]->position = glm::vec3(rand() % 2000 / 100.0, rand() % 2000 / 100.0, rand() % 4000 / 100.0);
-	// 	bubbles[i]->speed = bubble_base_speed + rand() % 100 / 10000.0;
-	// }
+	int n_bubbles = 100;
+	int n_lights = 6;
 
 	Enemies bubbles("data/sphere.obj", "shaders/enemies.vsh", "shaders/enemies.fsh",
-		seed, glm::vec3(20, 20, 40), Material{glm::vec3(0.2f, 0.2f, 0.2f), glm::vec3(0.362f, 0.686f, 0.368f),
-	 	glm::vec3(0.5f, 0.5f, 0.5f), 32.0f}, n_bubbles);
+					seed, glm::vec3(20, 20, 40), Material{glm::vec3(0.2f, 0.2f, 0.2f), glm::vec3(0.8941, 0.7412, 0.9647), glm::vec3(0.5f, 0.5f, 0.5f), 36.0f}, n_bubbles);
 
-	Sphere sphere(0.05f, 36, 18);
+	std::vector<DrawableLight *> glowingBubbles;
+	for (int i = 0; i < n_lights; i++)
+	{
+		glowingBubbles.push_back(new DrawableLight("data/sphere.obj", "shaders/glowing_bubble.vsh", "shaders/glowing_bubble.fsh", seed++));
+	}
 
 	glm::mat4 model = glm::mat4(1.0f);
 	glm::mat4 view = glm::mat4(1.0f);
@@ -232,16 +259,13 @@ int main(int argc, char* argv[])
 
 	// float deltaTime = 0.0f;	// Time between current frame and last frame
 	float lastFrame = 0.0f; // Time of last frame
-	
-	player_camera.front = glm::vec3(0.0, 0.0, 0.0);
+
+	player_camera.front = glm::vec3(1.0, 0.0, 1.0);
 
 	glm::vec3 lightPosition(0.0, 10.0, 0.0);
-	glm::vec3 lightColor(1.0f, 1.0f, 1.0f);	
-	
+	glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
 
 	glm::vec3 aquarium_center(10.0, 10.0, 20.0);
-
-	sphere.position = lightPosition;
 
 	aquarium.position.x += 14.362542;
 	aquarium.position.y += 8.999555;
@@ -249,20 +273,35 @@ int main(int argc, char* argv[])
 
 	plane.position.y += 8.999555;
 
+	player.position = {4.0, 4.0, 4.0};
 
-	float light_constant = 0.5;
-	float light_linear = 0.09;
-	float light_quadratic = 0.2;
-	float light_cutOff = 12.5;
-	float light_outCutOff = 17.5;
+	DirLight directionLight = {
+		.direction = glm::vec3(0.0, 30.0, 0.0),
+		.ambient = glm::vec3(0.2f, 0.2f, 0.2f),
+		.diffuse = glm::vec3(0.5f, 0.5f, 0.5f),
+		.specular = glm::vec3(1.0f, 1.0f, 1.0f)};
 
-	unsigned int counter = 0; 
+	SpotLight spotLight = {
+		.position = player_camera.position,
+		.direction = player_camera.front,
+		.ambient = glm::vec3(0.2f, 0.0f, 0.0f),
+		.diffuse = glm::vec3(0.5f, 0.0f, 0.0f),
+		.specular = glm::vec3(1.0f, 0.0f, 0.0f),
+		.constant = 0.5,
+		.linear = 0.09,
+		.quadratic = 0.2,
+		.cutOff = 12.5,
+		.outCutOff = 17.5};
+
+	unsigned int counter = 0;
 	// glfwSwapInterval(0); // disables VSync -- unlimited FPS
 
-	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0)
-	{	
+	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0 && !GAME_OVER)
+	{
+
 		float currentFrame = glfwGetTime();
 		delta_time = currentFrame - lastFrame;
+		last_change += delta_time;
 		counter++;
 
 		if (delta_time >= 1.0 / 30.0)
@@ -272,133 +311,179 @@ int main(int argc, char* argv[])
 			std::string newTitle = "Aquarium - " + FPS + "FPS / " + ms + "ms";
 			glfwSetWindowTitle(window, newTitle.c_str());
 			counter = 0;
-			lastFrame = currentFrame;  
+			lastFrame = currentFrame;
 		}
 
 		processInput(window);
 
 		lightPosition = player_camera.position;
 
-
-		// for (auto bubble_position : bubbles.positions)
-		// {
-		// 	if (bubble_position.y >= 20.0)
-		// 	{
-		// 		bubble_position = glm::vec3(rand() % 2000 / 100.0, rand() % 2000 / 100.0 - 20.0, rand() % 4000 / 100.0);
-		// 		bubble->speed = bubble_base_speed + rand() % 100 / 10000.0;
-		// 	}
-
-		// }
-
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glClearColor(0.07f, 0.07f, 0.07f, 1.0f);
 
+		if (camera_index == PLAYER_CAMERA)
+			view = main_camera->getViewMatrix();
+		if (camera_index == STATIC_CAMERA)
+			view = glm::lookAt(static_camera.position, player_camera.position, static_camera.up);
 
-		view = player_camera.getViewMatrix();
-		projection = glm::perspective(glm::radians(player_camera.zoom), (float)(SCR_WIDTH) / (float)SCR_HEIGHT, 0.01f, 100.0f);
-		
+		projection = glm::perspective(glm::radians(main_camera->zoom), (float)(SCR_WIDTH) / (float)SCR_HEIGHT, 0.01f, 100.0f);
+
 		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+
+		player.shader.Activate();
+		player.Bind();
+
+		glUniform3fv(glGetUniformLocation(player.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));
+
+		player.loadUniforms();
+
+		// direction light
+		loadDirectionLightsUniforms(directionLight, player);
+		// // point lights
+		loadPointLightsUniforms(glowingBubbles, player);
+		// spotlight
+loadSpotLightsUniforms(spotLight, player);
+
+		if (camera_index != PLAYER_CAMERA)
+		{
+			player.Draw(&model, &view, &projection, TRIANGLES, false, player_camera.position);
+			player.Unbind();
+		}
 
 		aquarium.shader.Activate();
 		aquarium.Bind();
-
-		glUniform3fv(glGetUniformLocation(aquarium.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));	
-
+		glUniform3fv(glGetUniformLocation(aquarium.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));
 		aquarium.loadUniforms();
-
 		// direction light
-		glUniform3fv(glGetUniformLocation(aquarium.shader.id, "directionlight.direction"), 1, glm::value_ptr(glm::vec3(0.0, 30.0, 0.0)));
-		glUniform3f(glGetUniformLocation(aquarium.shader.id, "directionlight.ambient"), 0.2f, 0.2f, 0.2f);
-		glUniform3f(glGetUniformLocation(aquarium.shader.id, "directionlight.diffuse"), 0.5f, 0.5f, 0.5f);
-		glUniform3f(glGetUniformLocation(aquarium.shader.id, "directionlight.specular"), 1.0f, 1.0f, 1.0f);
-
+		loadDirectionLightsUniforms(directionLight, aquarium);
+		// point lights
+		loadPointLightsUniforms(glowingBubbles, aquarium);
 		// spotlight
-		glUniform3fv(glGetUniformLocation(aquarium.shader.id, "spotlight.position"), 1, glm::value_ptr(lightPosition));
-		glUniform3fv(glGetUniformLocation(aquarium.shader.id, "spotlight.direction"), 1, glm::value_ptr(player_camera.front));
-		glUniform3f(glGetUniformLocation(aquarium.shader.id, "spotlight.ambient"), 0.2f, 0.2f, 0.2f);
-		glUniform3f(glGetUniformLocation(aquarium.shader.id, "spotlight.diffuse"), 0.5f, 0.5f, 0.5f);
-		glUniform3f(glGetUniformLocation(aquarium.shader.id, "spotlight.specular"), 1.0f, 1.0f, 1.0f);
-		glUniform1f(glGetUniformLocation(aquarium.shader.id, "spotlight.constant"), light_constant);
-		glUniform1f(glGetUniformLocation(aquarium.shader.id, "spotlight.linear"), light_linear);
-		glUniform1f(glGetUniformLocation(aquarium.shader.id, "spotlight.quadratic"), light_quadratic);
-		glUniform1f(glGetUniformLocation(aquarium.shader.id, "spotlight.cutOff"), glm::cos(glm::radians(light_cutOff)));
-		glUniform1f(glGetUniformLocation(aquarium.shader.id, "spotlight.outCutOff"), glm::cos(glm::radians(light_outCutOff)));
+		loadSpotLightsUniforms(spotLight, aquarium);
 
 		aquarium.Draw(&model, &view, &projection, TRIANGLES, false, player_camera.position);
 		aquarium.Unbind();
 
 		plane.shader.Activate();
 		plane.Bind();
-		
-		glUniform3fv(glGetUniformLocation(plane.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));	
-		
-		plane.loadUniforms();
 
-		glUniform3fv(glGetUniformLocation(plane.shader.id, "light.position"), 1, glm::value_ptr(lightPosition));
-		glUniform3fv(glGetUniformLocation(plane.shader.id, "light.direction"), 1, glm::value_ptr(player_camera.front));
-		glUniform3f(glGetUniformLocation(plane.shader.id, "light.ambient"), 0.2f, 0.2f, 0.2f);
-		glUniform3f(glGetUniformLocation(plane.shader.id, "light.diffuse"), 0.5f, 0.5f, 0.5f);
-		glUniform3f(glGetUniformLocation(plane.shader.id, "light.specular"), 1.0f, 1.0f, 1.0f);
-		glUniform1f(glGetUniformLocation(plane.shader.id, "light.constant"), light_constant);
-		glUniform1f(glGetUniformLocation(plane.shader.id, "light.linear"), light_linear);
-		glUniform1f(glGetUniformLocation(plane.shader.id, "light.quadratic"), light_quadratic);
-		glUniform1f(glGetUniformLocation(plane.shader.id, "light.cutOff"), glm::cos(glm::radians(light_cutOff)));
-		glUniform1f(glGetUniformLocation(plane.shader.id, "light.outCutOff"), glm::cos(glm::radians(light_outCutOff)));
-		
+		glUniform3fv(glGetUniformLocation(plane.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));
+
+		plane.loadUniforms();
+		// direction light
+		loadDirectionLightsUniforms(directionLight, plane);
+		// point lights
+		loadPointLightsUniforms(glowingBubbles, plane);
+		// spotlight
+		loadSpotLightsUniforms(spotLight, plane);
 
 		plane.Draw(&model, &view, &projection, TRIANGLES, false, player_camera.position);
-
 		plane.Unbind();
 
+		bubbles.shader.Activate();
+		bubbles.Bind();
+		glUniform3fv(glGetUniformLocation(bubbles.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));
+		bubbles.loadUniforms();
+		// direction light
+		loadDirectionLightsUniforms(directionLight, bubbles);
+		// point lights
+		loadPointLightsUniforms(glowingBubbles, bubbles);
+		// spotlight
+		loadSpotLightsUniforms(spotLight, bubbles);
+		// glDisable(GL_DEPTH_TEST);
+		glDepthMask(GL_FALSE);
+		glEnable(GL_BLEND);
+		bubbles.DrawInstanced(n_bubbles, &model, &view, &projection, drawing_mode);
+		glDisable(GL_BLEND);
+		glDepthMask(GL_TRUE);
+		// glEnable(GL_DEPTH_TEST);
+		bubbles.Unbind();
 
-		// for (auto bubble : bubbles)
-		// {
-			bubbles.shader.Activate();
-			bubbles.Bind();
-			
-			glUniform3fv(glGetUniformLocation(bubbles.shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));
 
-			bubbles.loadUniforms();
+		
+		for (auto point_light : glowingBubbles)
+		{
+			point_light->shader.Activate();
+			point_light->Bind();
 
-			// direction light
-			glUniform3fv(glGetUniformLocation(bubbles.shader.id, "directionlight.direction"), 1, glm::value_ptr(glm::vec3(0.0, 30.0, 0.0)));
-			glUniform3f(glGetUniformLocation(bubbles.shader.id, "directionlight.ambient"), 0.2f, 0.2f, 0.2f);
-			glUniform3f(glGetUniformLocation(bubbles.shader.id, "directionlight.diffuse"), 0.5f, 0.5f, 0.5f);
-			glUniform3f(glGetUniformLocation(bubbles.shader.id, "directionlight.specular"), 1.0f, 1.0f, 1.0f);
+			glUniform3fv(glGetUniformLocation(point_light->shader.id, "viewerPosition"), 1, glm::value_ptr(player_camera.position));
 
-			// spotlight
-			glUniform3fv(glGetUniformLocation(bubbles.shader.id, "spotlight.position"), 1, glm::value_ptr(lightPosition));
-			glUniform3fv(glGetUniformLocation(bubbles.shader.id, "spotlight.direction"), 1, glm::value_ptr(player_camera.front));
-			glUniform3f(glGetUniformLocation(bubbles.shader.id, "spotlight.ambient"), 0.2f, 0.2f, 0.2f);
-			glUniform3f(glGetUniformLocation(bubbles.shader.id, "spotlight.diffuse"), 0.5f, 0.5f, 0.5f);
-			glUniform3f(glGetUniformLocation(bubbles.shader.id, "spotlight.specular"), 1.0f, 1.0f, 1.0f);
-			glUniform1f(glGetUniformLocation(bubbles.shader.id, "spotlight.constant"), light_constant);
-			glUniform1f(glGetUniformLocation(bubbles.shader.id, "spotlight.linear"), light_linear);
-			glUniform1f(glGetUniformLocation(bubbles.shader.id, "spotlight.quadratic"), light_quadratic);
-			glUniform1f(glGetUniformLocation(bubbles.shader.id, "spotlight.cutOff"), glm::cos(glm::radians(light_cutOff)));
-			glUniform1f(glGetUniformLocation(bubbles.shader.id, "spotlight.outCutOff"), glm::cos(glm::radians(light_outCutOff)));
-			
-			glDisable(GL_CULL_FACE);
-			glEnable(GL_BLEND);
-			// bubbles.Draw(&model, &view, &projection, drawing_mode, false, player_camera.position);
-			bubbles.DrawInstanced(n_bubbles, &model, &view, &projection, drawing_mode);
-			glDisable(GL_BLEND);
-			glEnable(GL_CULL_FACE);
-			bubbles.Unbind();
-		// }
+			point_light->loadUniforms();
+
+			point_light->Draw(&model, &view, &projection, TRIANGLES, false, player_camera.position);
+			point_light->Unbind();
+		}
+
+		for (int i = 0; i < bubbles.positions.size(); i++)
+		{
+			bubbles.positions[i].y += bubbles.velocity;
+			bubbles.translations[3 * i + 1] = bubbles.positions[i].y;
+
+			if (bubbles.positions[i].y > 18.0)
+			{
+				bubbles.positions[i] = glm::vec3(rand() % 2000 / 100.0,
+												 -rand() % 1000 / 100.0,
+												 rand() % 4000 / 100.0);
+
+				bubbles.translations[3 * i] = bubbles.positions[i].x;
+				bubbles.translations[3 * i + 1] = bubbles.positions[i].y;
+				bubbles.translations[3 * i + 2] = bubbles.positions[i].z;
+			}
+		}
+
+		player.position = player_camera.position;
 
 		// Collision detection
 
-		if (player_camera.position.x < 0.1 || player_camera.position.x > 19.9 || 
-			player_camera.position.y < 0.1 || player_camera.position.y > 19.9 || 
-			player_camera.position.z < 0.1 || player_camera.position.z > 39.9)
+		if (player_camera.position.x < 0.5 || player_camera.position.x > 19.5 ||
+			player_camera.position.y < 0.5 || player_camera.position.y > 19.5 ||
+			player_camera.position.z < 0.5 || player_camera.position.z > 39.5)
 			player_camera.undoMove(delta_time);
-
 
 		for (glm::vec3 bubble_position : bubbles.positions)
 		{
 			if (glm::length(bubble_position - player_camera.position) < 2.0)
+			{
 				player_camera.undoMove(delta_time);
+				// GAME_OVER = true;
+			}
+		}
+		for (auto glowingBubble : glowingBubbles)
+		{
+			if (glm::length(glowingBubble->point_light.position - player_camera.position) < 2.0)
+			{
+				totalScore += 10;
+				glowingBubble->point_light.position = glm::vec3(100.0, 100.0, 100.0);
+				glowingBubble->position = glowingBubble->point_light.position;
+			}
+		}
+
+		if (player.position.z > 39.0)
+		{
+			player_camera.position = glm::vec3(10.0, 10.0, 1.0);
+
+			level++;
+			totalScore += 100;
+
+			for (int i = 0; i < n_bubbles; i++)
+			{
+				bubbles.positions[i] = glm::vec3(rand() % 2000 / 100.0,
+												 rand() % 1000 / 100.0,
+												 rand() % 3500 / 100.0 + 5.0);
+
+				bubbles.translations[3 * i] = bubbles.positions[i].x;
+				bubbles.translations[3 * i + 1] = bubbles.positions[i].y;
+				bubbles.translations[3 * i + 2] = bubbles.positions[i].z;
+			}
+			for (int i = 0; i < n_lights; i++)
+			{
+				glowingBubbles[i]->position = glm::vec3(rand() % 2000 / 100.0,
+														rand() % 1000 / 100.0,
+														rand() % 3500 / 100.0 + 5.0);
+				glowingBubbles[i]->point_light.position = glowingBubbles[i]->position;
+			}
+
+			bubbles.velocity += 0.005;
 		}
 
 		// Swap the back buffer with the front buffer
@@ -407,10 +492,157 @@ int main(int argc, char* argv[])
 		glfwPollEvents();
 	}
 
+	std::cout << "You've survived " << level << " levels and scored " << totalScore << "points!\n";
 
 	// Delete window before ending the program
 	glfwDestroyWindow(window);
 	// Terminate GLFW before ending the program
 	glfwTerminate();
 	return 0;
+}
+
+void loadPointLightsUniforms(std::vector<DrawableLight *> lights, Enemies entity)
+{
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[0].position"), 1, glm::value_ptr(lights[0]->point_light.position));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[0].ambient"), 1, glm::value_ptr(lights[0]->point_light.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[0].diffuse"), 1, glm::value_ptr(lights[0]->point_light.diffuse));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[0].specular"), 1, glm::value_ptr(lights[0]->point_light.specular));
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[0].constant"), lights[0]->point_light.constant);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[0].linear"), lights[0]->point_light.linear);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[0].quadratic"), lights[0]->point_light.quadratic);
+
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[1].position"), 1, glm::value_ptr(lights[1]->point_light.position));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[1].ambient"), 1, glm::value_ptr(lights[1]->point_light.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[1].diffuse"), 1, glm::value_ptr(lights[1]->point_light.diffuse));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[1].specular"), 1, glm::value_ptr(lights[1]->point_light.specular));
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[1].constant"), lights[1]->point_light.constant);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[1].linear"), lights[1]->point_light.linear);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[1].quadratic"), lights[1]->point_light.quadratic);
+
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[2].position"), 1, glm::value_ptr(lights[2]->point_light.position));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[2].ambient"), 1, glm::value_ptr(lights[2]->point_light.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[2].diffuse"), 1, glm::value_ptr(lights[2]->point_light.diffuse));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[2].specular"), 1, glm::value_ptr(lights[2]->point_light.specular));
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[2].constant"), lights[2]->point_light.constant);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[2].linear"), lights[2]->point_light.linear);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[2].quadratic"), lights[2]->point_light.quadratic);
+
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[3].position"), 1, glm::value_ptr(lights[3]->point_light.position));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[3].ambient"), 1, glm::value_ptr(lights[3]->point_light.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[3].diffuse"), 1, glm::value_ptr(lights[3]->point_light.diffuse));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[3].specular"), 1, glm::value_ptr(lights[3]->point_light.specular));
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[3].constant"), lights[3]->point_light.constant);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[3].linear"), lights[3]->point_light.linear);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[3].quadratic"), lights[3]->point_light.quadratic);
+
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[4].position"), 1, glm::value_ptr(lights[4]->point_light.position));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[4].ambient"), 1, glm::value_ptr(lights[4]->point_light.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[4].diffuse"), 1, glm::value_ptr(lights[4]->point_light.diffuse));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[4].specular"), 1, glm::value_ptr(lights[4]->point_light.specular));
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[4].constant"), lights[4]->point_light.constant);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[4].linear"), lights[4]->point_light.linear);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[4].quadratic"), lights[4]->point_light.quadratic);
+
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[5].position"), 1, glm::value_ptr(lights[5]->point_light.position));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[5].ambient"), 1, glm::value_ptr(lights[5]->point_light.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[5].diffuse"), 1, glm::value_ptr(lights[5]->point_light.diffuse));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[5].specular"), 1, glm::value_ptr(lights[5]->point_light.specular));
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[5].constant"), lights[5]->point_light.constant);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[5].linear"), lights[5]->point_light.linear);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[5].quadratic"), lights[5]->point_light.quadratic);
+}
+
+void loadPointLightsUniforms(std::vector<DrawableLight *> lights, Drawable entity)
+{
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[0].position"), 1, glm::value_ptr(lights[0]->point_light.position));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[0].ambient"), 1, glm::value_ptr(lights[0]->point_light.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[0].diffuse"), 1, glm::value_ptr(lights[0]->point_light.diffuse));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[0].specular"), 1, glm::value_ptr(lights[0]->point_light.specular));
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[0].constant"), lights[0]->point_light.constant);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[0].linear"), lights[0]->point_light.linear);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[0].quadratic"), lights[0]->point_light.quadratic);
+
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[1].position"), 1, glm::value_ptr(lights[1]->point_light.position));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[1].ambient"), 1, glm::value_ptr(lights[1]->point_light.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[1].diffuse"), 1, glm::value_ptr(lights[1]->point_light.diffuse));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[1].specular"), 1, glm::value_ptr(lights[1]->point_light.specular));
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[1].constant"), lights[1]->point_light.constant);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[1].linear"), lights[1]->point_light.linear);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[1].quadratic"), lights[1]->point_light.quadratic);
+
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[2].position"), 1, glm::value_ptr(lights[2]->point_light.position));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[2].ambient"), 1, glm::value_ptr(lights[2]->point_light.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[2].diffuse"), 1, glm::value_ptr(lights[2]->point_light.diffuse));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[2].specular"), 1, glm::value_ptr(lights[2]->point_light.specular));
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[2].constant"), lights[2]->point_light.constant);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[2].linear"), lights[2]->point_light.linear);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[2].quadratic"), lights[2]->point_light.quadratic);
+
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[3].position"), 1, glm::value_ptr(lights[3]->point_light.position));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[3].ambient"), 1, glm::value_ptr(lights[3]->point_light.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[3].diffuse"), 1, glm::value_ptr(lights[3]->point_light.diffuse));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[3].specular"), 1, glm::value_ptr(lights[3]->point_light.specular));
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[3].constant"), lights[3]->point_light.constant);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[3].linear"), lights[3]->point_light.linear);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[3].quadratic"), lights[3]->point_light.quadratic);
+
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[4].position"), 1, glm::value_ptr(lights[4]->point_light.position));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[4].ambient"), 1, glm::value_ptr(lights[4]->point_light.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[4].diffuse"), 1, glm::value_ptr(lights[4]->point_light.diffuse));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[4].specular"), 1, glm::value_ptr(lights[4]->point_light.specular));
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[4].constant"), lights[4]->point_light.constant);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[4].linear"), lights[4]->point_light.linear);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[4].quadratic"), lights[4]->point_light.quadratic);
+
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[5].position"), 1, glm::value_ptr(lights[5]->point_light.position));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[5].ambient"), 1, glm::value_ptr(lights[5]->point_light.ambient));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[5].diffuse"), 1, glm::value_ptr(lights[5]->point_light.diffuse));
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "pointLights[5].specular"), 1, glm::value_ptr(lights[5]->point_light.specular));
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[5].constant"), lights[5]->point_light.constant);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[5].linear"), lights[5]->point_light.linear);
+	glUniform1f(glGetUniformLocation(entity.shader.id, "pointLights[5].quadratic"), lights[5]->point_light.quadratic);
+}
+
+void loadDirectionLightsUniforms(DirLight directionLight, Drawable entity)
+{
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.direction"), 1, glm::value_ptr(directionLight.direction));
+		glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.ambient"), 1, glm::value_ptr(directionLight.ambient));
+		glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.diffuse"), 1, glm::value_ptr(directionLight.diffuse));
+		glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.specular"), 1, glm::value_ptr(directionLight.specular));
+}
+
+void loadDirectionLightsUniforms(DirLight directionLight, Enemies entity)
+{
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.direction"), 1, glm::value_ptr(directionLight.direction));
+		glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.ambient"), 1, glm::value_ptr(directionLight.ambient));
+		glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.diffuse"), 1, glm::value_ptr(directionLight.diffuse));
+		glUniform3fv(glGetUniformLocation(entity.shader.id, "directionlight.specular"), 1, glm::value_ptr(directionLight.specular));
+}
+
+void loadSpotLightsUniforms(SpotLight spotLight, Drawable entity)
+{
+	glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.position"), 1, glm::value_ptr(player_camera.position));
+		glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.direction"), 1, glm::value_ptr(player_camera.front));
+		glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.ambient"), 1, glm::value_ptr(spotLight.ambient));
+		glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.diffuse"), 1, glm::value_ptr(spotLight.ambient));
+		glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.specular"), 1, glm::value_ptr(spotLight.ambient));
+		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.constant"), spotLight.constant);
+		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.linear"), spotLight.linear);
+		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.quadratic"), spotLight.quadratic);
+		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.cutOff"), glm::cos(glm::radians(spotLight.cutOff)));
+		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.outCutOff"), glm::cos(glm::radians(spotLight.outCutOff)));
+}
+
+void loadSpotLightsUniforms(SpotLight spotLight, Enemies entity)
+{
+glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.position"), 1, glm::value_ptr(player_camera.position));
+		glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.direction"), 1, glm::value_ptr(player_camera.front));
+		glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.ambient"), 1, glm::value_ptr(spotLight.ambient));
+		glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.diffuse"), 1, glm::value_ptr(spotLight.ambient));
+		glUniform3fv(glGetUniformLocation(entity.shader.id, "spotlight.specular"), 1, glm::value_ptr(spotLight.ambient));
+		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.constant"), spotLight.constant);
+		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.linear"), spotLight.linear);
+		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.quadratic"), spotLight.quadratic);
+		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.cutOff"), glm::cos(glm::radians(spotLight.cutOff)));
+		glUniform1f(glGetUniformLocation(entity.shader.id, "spotlight.outCutOff"), glm::cos(glm::radians(spotLight.outCutOff)));
 }

@@ -34,12 +34,10 @@ void VBO::Unbind()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void VBO::Update(std::vector<float>* vertices, GLsizeiptr size)
+void VBO::Update(std::vector<float>* vertices)
 {
-    this->Unbind();
-    this->Bind();
     glBindBuffer(GL_ARRAY_BUFFER, id);
-    glBufferData(GL_ARRAY_BUFFER, size, &vertices->front(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices->size() * sizeof(float), &vertices->front(), GL_STATIC_DRAW);
 }
 
 void VBO::Delete()

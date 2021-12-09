@@ -74,7 +74,6 @@ void Camera::processKeyboard(Camera_Movement direction, float delta_time)
 
 void Camera::processMouseMovement(float x_offset, float y_offset, GLboolean constrain_pitch)
 {
-    // std::cout << x_offset << " " << y_offset << "\n";
     x_offset *= mouse_sensitivity;
     y_offset *= mouse_sensitivity;
 
@@ -118,7 +117,6 @@ void Camera::updateCameraVectors()
 
 void Camera::undoMove(float delta_time)
 {
-    // printf("MOVEMENTS: ");
     for (Camera_Movement direction : previous_moves)
     {   
         float velocity = movement_speed * delta_time;
@@ -126,19 +124,15 @@ void Camera::undoMove(float delta_time)
         {
             case FORWARD:
                 position -= front * velocity;
-                // printf("FORWARD ");
                 break;
             case BACKWARD:
                 position += front * velocity;
-                // printf("BACKWARD ");
                 break;
             case LEFT:
                 position += right * velocity;
-                // printf("LEFT ");
                 break;
             case RIGHT:
                  position -= right * velocity;
-                //  printf("RIGHT ");
                 break;
             case UP:
                 position -= up * velocity;
@@ -149,5 +143,4 @@ void Camera::undoMove(float delta_time)
                 break;
         }
     }
-    // printf("\n");
 }

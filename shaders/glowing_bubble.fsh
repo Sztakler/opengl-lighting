@@ -6,10 +6,7 @@ out vec4 FragColor;
 in vec3 objectColor;
 in vec3 fragmentPosition;  
 in vec3 Normal;  
-  
-uniform vec3 lightColor;
-uniform vec3 lightPosition;
-uniform vec3 viewerPosition; 
+
 
 struct Material {
     vec3 ambient;
@@ -59,19 +56,14 @@ vec3 CalcPointLight(PointLight light, Material material, vec3 normal, vec3 fragP
 vec3 calculateSpotLight(SpotLight light, Material material, vec3 normal, vec3 fragPos, vec3 viewDir);
 
 uniform Material material;
-uniform SpotLight spotlight;
-uniform DirLight directionlight;
+
 
 void main()
 {
-    vec3 norm = normalize(Normal);
-    vec3 viewDirection = normalize(viewerPosition - fragmentPosition);
-    vec3 lightDirection = normalize(spotlight.position - fragmentPosition);
-
-    vec3 result = CalcDirLight(directionlight, material, norm, fragmentPosition, -viewDirection);
-    result += calculateSpotLight(spotlight, material, norm, fragmentPosition, -viewDirection);
-
-    FragColor = vec4(result, 1.0);
+    float depth = 23.0 - fragmentPosition.y;
+    float beer_intensity = pow(10.0, -1.0 * 0.0048 * depth * depth);
+    // FragColor = vec4(material.diffuse + vec3(0.0314, 0.1686, 0.4275) * beer_intensity , 1.0);
+    FragColor = vec4(material.diffuse, 1.0);
 } 
 
 vec3 CalcDirLight(DirLight light, Material material, vec3 normal, vec3 fragPos, vec3 viewDir)
